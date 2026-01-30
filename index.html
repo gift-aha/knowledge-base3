@@ -5,47 +5,40 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
     <title>思维协同处理器 - 智能解析增强版</title>
     
-    <!-- 所有 meta 标签放在一起 -->
+    <!-- 元数据 -->
     <link rel="icon" href="favicon.ico" type="image/x-icon">
     <link rel="apple-touch-icon" href="apple-touch-icon.png">
-    <link rel="canonical" href="https://gift-aha.github.io/knowledge-base3/">
     <meta name="description" content="思维协同处理器 - 个人知识管理与思维模型构建工具，帮助你结构化思考、管理认知模型、建立个人知识体系">
     <meta name="keywords" content="知识管理,思维模型,认知工具,个人成长,思维训练">
     <meta name="author" content="Aha">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="思维协同处理器">
-    <meta name="twitter:description" content="强大的个人知识管理工具">
-    <meta name="twitter:image" content="https://gift-aha.github.io/knowledge-base3/og-image.png">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://gift-aha.github.io/knowledge-base3-base2/">
-    <meta property="og:title" content="思维协同处理器">
-    <meta property="og:description" content="强大的个人知识管理工具">
-    <meta property="og:image" content="https://gift-aha.github.io/knowledge-base3/og-image.png">  
-    <meta name="referrer" content="strict-origin-when-cross-origin">
-    <meta http-equiv="X-Content-Type-Options" content="nosniff">
-    <meta name="format-detection" content="telephone=no">
-    <meta http-equiv="Content-Security-Policy" 
-          content="default-src 'self'; 
-                   script-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com; 
-                   style-src 'self' 'unsafe-inline' https://cdnjs.cloudflare.com;
-                   font-src https://cdnjs.cloudflare.com;
-                   img-src 'self' data:;">
     
-    <!-- CSS 文件 -->
+    <!-- CSS -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link rel="stylesheet" href="style.css">
     <link rel="stylesheet" href="mobile.css">
+    
+    <style>
+        /* 临时样式用于调试 */
+        .debug-info {
+            position: fixed;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
+            color: white;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 9999;
+            font-size: 12px;
+            max-width: 300px;
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <!-- 调试信息 -->
-    <script>
-    console.log('页面开始加载...');
-    console.log('用户代理:', navigator.userAgent);
-    console.log('是否为移动端:', /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent));
-    </script>
-
-    <!-- 顶部状态栏（桌面端） -->
+    <div class="debug-info" id="debug-info"></div>
+    
+    <!-- 桌面端顶部栏 -->
     <div class="top-bar desktop-only">
         <div class="logo">
             <div class="logo-icon">🧠</div>
@@ -60,19 +53,21 @@
             <span style="margin: 0 5px;">|</span>
             <span>标签数: <strong id="total-tags">0</strong></span>
         </div>
-        <!-- 同步按钮 -->
         <div class="sync-controls">
-            <button class="sync-btn" id="sync-btn" title="同步数据到其他设备">
+            <button class="sync-btn" id="sync-btn" title="同步数据">
                 <i class="fas fa-sync-alt"></i> 同步
             </button>
             <button class="sync-btn" id="export-btn" title="导出数据">
                 <i class="fas fa-download"></i> 导出
             </button>
+            <button class="sync-btn" id="github-export-btn" title="导出到GitHub文件" onclick="GitHubDataSync.exportDataForGitHub()">
+                <i class="fas fa-cloud-upload-alt"></i> GitHub
+            </button>
         </div>
         <div class="current-view" id="current-view">核心资产总览</div>
     </div>
     
-    <!-- 移动端顶部导航栏 -->
+    <!-- 移动端顶部导航 -->
     <div class="mobile-header">
         <div class="mobile-header-inner">
             <div class="mobile-header-left">
@@ -131,10 +126,7 @@
         </div>
     </div>
     
-    <!-- 数据更新时间显示（移动端可见） -->
-    <div id="data-update-time" class="data-update-time"></div>
-    
-    <!-- 主内容区 -->
+    <!-- 主容器 -->
     <div class="main-container">
         <!-- 左侧导航栏 -->
         <div class="sidebar">
@@ -167,18 +159,17 @@
                 <label for="version-select">数据版本:</label>
                 <select id="version-select">
                     <option value="initial">初始版本</option>
-                    <option value="current" selected>当前版本 (本地存储)</option>
+                    <option value="current" selected>当前版本</option>
                 </select>
             </div>
         </div>
         
-        <!-- 中间主内容区 -->
+        <!-- 主内容区 -->
         <div class="content-area" id="content-area">
-            <!-- 内容将通过JavaScript动态加载 -->
             <div id="loading" class="loading" style="margin: 100px auto;"></div>
         </div>
         
-        <!-- 右侧功能面板 -->
+        <!-- 右侧面板 -->
         <div class="right-panel">
             <div class="search-section">
                 <div class="search-box">
@@ -190,89 +181,36 @@
                         <option value="all">所有类别</option>
                         <option value="thought">思考记录</option>
                         <option value="model">思维模型</option>
-                        <option value="tag">标签</option>
-                    </select>
-                    <select id="theme-filter">
-                        <option value="all">所有主题</option>
-                        <option value="emotion">情感/关系</option>
-                        <option value="philosophy">哲学/存在</option>
-                        <option value="growth">成长/历程</option>
-                        <option value="society">社会/系统</option>
-                        <option value="aesthetics">艺术/表达</option>
                     </select>
                 </div>
             </div>
             
             <div class="status-section">
-                <h3><i class="fas fa-heartbeat"></i> 系统健康状态</h3>
-                <div class="status-item">
-                    <span class="status-label">数据完整性</span>
-                    <span class="status-value" id="data-integrity">100%</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">关联网络</span>
-                    <span class="status-value" id="network-health">完好</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">模型可拓展性</span>
-                    <span class="status-value" id="extensibility">开放</span>
-                </div>
-                <div class="status-item">
-                    <span class="status-label">存储状态</span>
-                    <span class="status-value" id="storage-status">正常</span>
-                </div>
+                <h3><i class="fas fa-heartbeat"></i> 系统状态</h3>
                 <div class="status-item">
                     <span class="status-label">最后保存</span>
                     <span class="status-value" id="last-saved">刚刚</span>
                 </div>
-            </div>
-            
-            <!-- 模型关联网络 -->
-            <div class="network-section">
-                <h3><i class="fas fa-project-diagram"></i> 模型关联网络</h3>
-                <p style="font-size: 0.9rem; color: var(--text-light); margin-bottom: 10px;">
-                    当前选中模型的关联网络
-                </p>
-                <div class="network-graph" id="network-graph">
-                    <div>
-                        <i class="fas fa-project-diagram" style="font-size: 3rem; margin-bottom: 10px; color: #ccc;"></i>
-                        <p>选择模型查看关联网络</p>
-                    </div>
+                <div class="status-item">
+                    <span class="status-label">数据完整</span>
+                    <span class="status-value" id="data-integrity">100%</span>
                 </div>
             </div>
             
-            <!-- 数据操作 -->
             <div class="data-section">
                 <h3><i class="fas fa-database"></i> 数据操作</h3>
                 <div class="data-actions">
-                    <button class="data-btn export" id="export-current-btn">
-                        <i class="fas fa-file-export"></i> 导出当前项目
-                    </button>
-                    <button class="data-btn backup" id="backup-data-btn">
-                        <i class="fas fa-sync-alt"></i> 备份全部数据
+                    <button class="data-btn backup" id="export-all-btn">
+                        <i class="fas fa-download"></i> 导出数据
                     </button>
                     <button class="data-btn import" id="import-data-btn">
-                        <i class="fas fa-file-import"></i> 导入数据
-                    </button>
-                    <button class="data-btn backup" id="export-all-btn">
-                        <i class="fas fa-download"></i> 导出全部数据
+                        <i class="fas fa-upload"></i> 导入数据
                     </button>
                 </div>
             </div>
-            
-            <div class="how-to-use">
-                <h3><i class="fas fa-lightbulb"></i> 快速使用指南</h3>
-                <ol class="steps-list">
-                    <li>根据情绪/问题定位情境</li>
-                    <li>快速浏览相关核心模型</li>
-                    <li>调用具体的思维/行动要点</li>
-                    <li>在脑海中演练或写在纸上</li>
-                    <li>将知识转化为自我智慧</li>
-                </ol>
-            </div>
         </div>
     </div>
-
+    
     <!-- 移动端底部导航 -->
     <div class="mobile-bottom-nav">
         <div class="mobile-bottom-nav-inner">
@@ -292,10 +230,6 @@
                 <i class="fas fa-plus-circle"></i>
                 <span>新建</span>
             </a>
-            <a href="#" class="mobile-nav-item" data-view="keywords">
-                <i class="fas fa-tags"></i>
-                <span>标签</span>
-            </a>
         </div>
     </div>
     
@@ -303,115 +237,48 @@
     <div id="delete-modal" class="modal-overlay" style="display: none;">
         <div class="modal">
             <h3>确认删除</h3>
-            <p id="delete-message">确定要删除此项吗？此操作不可撤销。</p>
+            <p id="delete-message">确定要删除此项吗？</p>
             <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeDeleteModal()">取消</button>
-                <button class="btn btn-danger" onclick="confirmDelete()">删除</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="tag-review-modal" class="modal-overlay" style="display: none;">
-        <div class="modal" style="max-width: 600px;">
-            <h3><i class="fas fa-tags"></i> 标签复核与管理</h3>
-            <p style="margin-bottom: 20px; color: var(--text-light);">检查并管理当前项目的标签，确保分类准确</p>
-            
-            <div class="tag-review-container">
-                <div class="tag-review-header">
-                    <h4 id="tag-review-title">当前标签</h4>
-                    <div class="tag-review-actions">
-                        <button class="btn btn-secondary btn-sm" onclick="addNewTag()" style="padding: 5px 10px; font-size: 0.9rem;">
-                            <i class="fas fa-plus"></i> 新增
-                        </button>
-                        <button class="btn btn-primary btn-sm" onclick="saveTagReview()" style="padding: 5px 10px; font-size: 0.9rem;">
-                            <i class="fas fa-save"></i> 保存
-                        </button>
-                    </div>
-                </div>
-                
-                <div id="current-tags-container">
-                    <!-- 当前标签将通过JavaScript动态生成 -->
-                </div>
-                
-                <div class="tag-input-container" style="display: flex; margin-top: 15px;">
-                    <input type="text" id="new-tag-input" placeholder="输入新标签..." style="flex: 1; padding: 10px; border: 1px solid var(--border-color); border-radius: 4px 0 0 4px;" onkeypress="if(event.key === 'Enter') addTagFromInput()">
-                    <button onclick="addTagFromInput()" style="padding: 10px 15px; background-color: var(--accent-color); color: white; border: none; border-radius: 0 4px 4px 0; cursor: pointer;">
-                        <i class="fas fa-plus"></i>
-                    </button>
-                </div>
-            </div>
-            
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeTagReviewModal()">取消</button>
-                <button class="btn btn-success" onclick="applyTagReview()">应用更改</button>
-            </div>
-        </div>
-    </div>
-
-    <div id="section-edit-modal" class="modal-overlay" style="display: none;">
-        <div class="modal" style="max-width: 800px;">
-            <h3><i class="fas fa-edit"></i> 分段编辑思考内容</h3>
-            <p style="margin-bottom: 20px; color: var(--text-light);">可单独编辑各个板块内容</p>
-            
-            <div class="editable-id" id="id-editor">
-                <span class="editable-id-label">思考ID:</span>
-                <input type="text" id="edit-thought-id" class="editable-id-input" placeholder="#123">
-                <button class="btn btn-secondary btn-sm" onclick="validateThoughtId()" style="padding: 5px 10px; font-size: 0.9rem;">
-                    <i class="fas fa-check"></i> 验证ID
-                </button>
-            </div>
-            
-            <div class="section-editor-tabs" id="section-tabs">
-                <!-- 标签将通过JavaScript动态生成 -->
-            </div>
-            
-            <div id="section-editors-container">
-                <!-- 编辑器将通过JavaScript动态生成 -->
-            </div>
-            
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeSectionEditModal()">取消</button>
-                <button class="btn btn-success" onclick="saveSectionEdits()">
-                    <i class="fas fa-save"></i> 保存所有更改
-                </button>
-            </div>
-        </div>
-    </div>
-
-    <div id="timeline-edit-modal" class="modal-overlay" style="display: none;">
-        <div class="modal" style="max-width: 600px;">
-            <h3><i class="fas fa-edit"></i> 编辑系统演进记录</h3>
-            <p style="margin-bottom: 20px; color: var(--text-light);">修改系统演进历程的详细信息</p>
-            
-            <div class="timeline-edit-form">
-                <div class="timeline-form-group">
-                    <label for="timeline-edit-version">版本号</label>
-                    <input type="text" id="timeline-edit-version" placeholder="例如: v22.48">
-                </div>
-                
-                <div class="timeline-form-group">
-                    <label for="timeline-edit-date">日期</label>
-                    <input type="text" id="timeline-edit-date" placeholder="例如: 2024-07">
-                </div>
-                
-                <div class="timeline-form-group">
-                    <label for="timeline-edit-event">事件描述</label>
-                    <textarea id="timeline-edit-event" placeholder="详细描述此版本的事件..."></textarea>
-                </div>
-            </div>
-            
-            <div class="modal-actions">
-                <button class="btn btn-secondary" onclick="closeTimelineEditModal()">取消</button>
-                <button class="btn btn-success" onclick="saveTimelineEdit()">
-                    <i class="fas fa-save"></i> 保存更改
-                </button>
+                <button class="btn btn-secondary" onclick="App.closeModal('delete-modal')">取消</button>
+                <button class="btn btn-danger" onclick="App.confirmDelete()">删除</button>
             </div>
         </div>
     </div>
 
     <!-- JavaScript 文件 -->
-    <script src="data-sync.js"></script>
     <script src="script.js"></script>
     <script src="mobile.js"></script>
+    <script src="data-sync.js"></script>
+    
+    <script>
+    // 调试模式
+    const DEBUG = true;
+    
+    // 初始化应用
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM 加载完成，开始初始化应用...');
+        
+        // 显示调试信息
+        if (DEBUG) {
+            document.getElementById('debug-info').style.display = 'block';
+            document.getElementById('debug-info').innerHTML = `
+                初始化中...<br>
+                用户代理: ${navigator.userAgent}<br>
+                屏幕尺寸: ${window.innerWidth}×${window.innerHeight}<br>
+                设备类型: ${/Mobi|Android/i.test(navigator.userAgent) ? '移动端' : '桌面端'}
+            `;
+        }
+        
+        // 初始化主应用
+        setTimeout(() => {
+            if (typeof App !== 'undefined') {
+                App.init();
+            } else {
+                console.error('App 对象未定义');
+                alert('应用初始化失败，请刷新页面');
+            }
+        }, 100);
+    });
+    </script>
 </body>
 </html>
