@@ -9,29 +9,48 @@ const App = {
     
     // 初始化应用
     init: function() {
-        console.log('App.init() 开始执行');
-        
-        // 1. 初始化数据存储
-        DataManager.init();
-        
-        // 2. 绑定事件
-        this.bindEvents();
-        
-        // 3. 加载初始视图
-        this.loadView('overview');
-        
-        // 4. 隐藏加载动画
-        setTimeout(() => {
-            const loading = document.getElementById('loading');
-            if (loading) loading.style.display = 'none';
-        }, 300);                     
-        console.log('App.init() 完成');
+        try {
+            console.log('App.init() 开始执行');
+            
+            // 1. 初始化数据存储
+            DataManager.init();
+            
+            // 2. 绑定事件
+            this.bindEvents();
+            
+            // 3. 加载初始视图
+            this.loadView('overview');
+            
+            // 4. 隐藏加载动画
+            setTimeout(() => {
+                const loading = document.getElementById('loading');
+                if (loading) loading.style.display = 'none';
+            }, 300);
+            
+            console.log('App.init() 完成');
+        } catch (error) {
+            console.error('应用初始化失败:', error);
+            this.showErrorMessage(error);
+        }
     },
-    
-    // 判断是否为移动端
-    isMobile: function() {
-        return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-    },
+
+    showErrorMessage: function(error) {
+        const contentArea = document.getElementById('content-area');
+        if (contentArea) {
+            contentArea.innerHTML = `
+                <div class="error-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>应用初始化失败</h3>
+                    <p>错误信息: ${error.message}</p>
+                    <div style="text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <strong>调试信息:</strong>
+                        <pre style="font-size: 12px; white-space: pre-wrap;">${error.stack}</pre>
+                    </div>
+                    <button onclick="location.reload()" class="btn btn-primary">刷新页面</button>
+                </div>
+            `;
+        }
+    }
     
     // 初始化移动端
     initMobile: function() {
