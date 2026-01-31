@@ -35,7 +35,7 @@ const App = {
         } catch (error) {
             console.error('应用初始化失败:', error);
             this.showErrorMessage(error);
-        }
+        },
     },
 
     showErrorMessage: function(error) {
@@ -157,7 +157,6 @@ const App = {
             option.addEventListener('click', (e) => {
                 e.preventDefault();
                 e.stopPropagation();
-                
                 const view = option.getAttribute('data-view');
                 this.loadView(view);
                 
