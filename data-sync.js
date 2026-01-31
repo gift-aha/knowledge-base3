@@ -2,41 +2,39 @@
 const GitHubDataSync = {
     // 导出数据到GitHub文件格式
     exportDataForGitHub: function() {
-        const data = {
-            thoughts: DataManager.thoughts,
-            models: DataManager.models,
-            tags: DataManager.tags,
-            currentVersion: DataManager.currentVersion,
-            lastSaved: DataManager.lastSaved,
-            timeline: DataManager.timeline,
-            exportDate: new Date().toISOString(),
-            exportType: 'github'
-        };
-        
-        const json = JSON.stringify(data, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'data.json'; // 固定文件名，便于移动端加载
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        URL.revokeObjectURL(url);
-        
-        App.showMessage('数据已导出为data.json，可上传到GitHub仓库根目录', 'success');
-        
-        // 显示使用说明
-        setTimeout(() => {
-            if (confirm('是否查看移动端数据同步说明？')) {
-                alert('移动端数据同步步骤：\n\n1. 将此data.json文件上传到GitHub仓库根目录\n2. 移动端访问 https://[用户名].github.io/[仓库名]/\n3. 移动端将自动从data.json加载数据\n\n注意：移动端为只读模式，数据更新需要在电脑端重新导出');
-            }
-        }, 500);
+        try {
+            const data = {
+                thoughts: DataManager.thoughts,
+                models: DataManager.models,
+                tags: DataManager.tags,
+                currentVersion: DataManager.currentVersion,
+                lastSaved: DataManager.lastSaved,
+                timeline: DataManager.timeline,
+                exportDate: new Date().toISOString()
+            };
+            
+            const json = JSON.stringify(data, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'data.json';
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+            App.showMessage('数据已导出为data.json，可上传到GitHub仓库根目录', 'success');
+            
+        } catch (error) {
+            console.error('导出数据失败:', error);
+            App.showMessage('导出失败: ' + error.message, 'error');
+        }
     },
     
     // 从GitHub加载数据（移动端使用）
     loadDataFromGitHub: function() {
-        console.log('尝试从GitHub加载数据...');
+        console.log('尝试从data.json加载数据...');
         
         return fetch('./data.json')
             .then(response => {
@@ -44,11 +42,11 @@ const GitHubDataSync = {
                 return response.json();
             })
             .then(data => {
-                console.log('从GitHub加载数据成功');
+                console.log('从data.json加载数据成功');
                 return this.processGitHubData(data);
             })
             .catch(error => {
-                console.error('从GitHub加载数据失败:', error);
+                console.error('从data.json加载数据失败:', error);
                 throw error;
             });
     },
@@ -57,7 +55,7 @@ const GitHubDataSync = {
     processGitHubData: function(data) {
         // 验证数据格式
         if (!data.thoughts || !data.models) {
-            throw new Error('数据格式错误：缺少必要字段');
+            throw new Error('数据格式错误');
         }
         
         // 导入数据
@@ -90,81 +88,45 @@ const GitHubDataSync = {
             editButtons.forEach(btn => {
                 btn.style.display = 'none';
             });
-            
-            // 隐藏输入框
-            const inputAreas = document.querySelectorAll('input, textarea');
-            inputAreas.forEach(input => {
-                input.disabled = true;
-                input.style.backgroundColor = '#f5f5f5';
-                input.style.cursor = 'not-allowed';
-            });
         };
         
-        // 立即执行并监听DOM变化
+        // 立即执行
         hideEditButtons();
-        const observer = new MutationObserver(hideEditButtons);
-        observer.observe(document.body, { childList: true, subtree: true });
     }
 };
 
-// ==================== 数据同步初始化 ====================
+// 简化的数据同步初始化
 (function initDataSync() {
     console.log('数据同步模块初始化');
     
-    // 如果是移动端，尝试从data.json加载
-    if (App.isMobile()) {
-        console.log('移动端模式：尝试从data.json加载数据');
-        
-        // 显示加载提示
-        const loading = document.getElementById('loading');
-        if (loading) {
-            loading.style.display = 'block';
+    // 绑定GitHub导出按钮
+    document.addEventListener('DOMContentLoaded', function() {
+        const githubBtn = document.getElementById('github-export-btn');
+        if (githubBtn) {
+            githubBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+                GitHubDataSync.exportDataForGitHub();
+            });
         }
+    });
+    
+    // 如果是移动端，尝试从data.json加载
+    if (App.isMobile && App.isMobile()) {
+        console.log('移动端模式：尝试从data.json加载数据');
         
         // 尝试从GitHub加载数据
         GitHubDataSync.loadDataFromGitHub()
             .then(() => {
                 console.log('移动端数据加载成功');
-                
-                // 更新存储模式显示
-                const storageMode = document.getElementById('storage-mode');
-                if (storageMode) {
-                    storageMode.textContent = 'GitHub数据';
-                }
             })
-            .catch(error => {
-                console.log('GitHub数据加载失败，使用本地存储：', error);
-                
-                // 如果data.json不存在，使用本地存储
+            .catch(() => {
+                console.log('data.json加载失败，使用本地存储');
                 DataManager.init();
-                
-                // 更新存储模式显示
-                const storageMode = document.getElementById('storage-mode');
-                if (storageMode) {
-                    storageMode.textContent = '本地存储';
-                }
-                
-                // 显示数据文件提示
-                App.showMessage('未找到data.json文件，使用本地数据。请从电脑端导出数据文件。', 'warning');
-            })
-            .finally(() => {
-                // 隐藏加载动画
-                if (loading) {
-                    loading.style.display = 'none';
-                }
             });
-    } else {
-        // 电脑端：使用本地存储
-        console.log('电脑端模式：使用本地存储');
-        DataManager.init();
-        
-        // 更新存储模式显示
-        const storageMode = document.getElementById('storage-mode');
-        if (storageMode) {
-            storageMode.textContent = '本地存储';
-        }
     }
 })();
 
-// ==================== 导出到全局作用域 ====================
-window.GitHubDataSync = GitHubDataSync;
+// 导出到全局作用域
+if (typeof window !== 'undefined') {
+    window.GitHubDataSync = GitHubDataSync;
+}
