@@ -279,21 +279,15 @@
     
     <script>
     // 调试模式
-    const DEBUG = true;
+    const DEBUG = false;
     
     // 初始化应用
     document.addEventListener('DOMContentLoaded', function() {
         console.log('DOM 加载完成，开始初始化应用...');
         
-        // 显示调试信息
-        if (DEBUG) {
+        // 移除调试信息显示
+        if (false) { // 始终不显示
             document.getElementById('debug-info').style.display = 'block';
-            document.getElementById('debug-info').innerHTML = `
-                初始化中...<br>
-                用户代理: ${navigator.userAgent}<br>
-                屏幕尺寸: ${window.innerWidth}×${window.innerHeight}<br>
-                设备类型: ${/Mobi|Android/i.test(navigator.userAgent) ? '移动端' : '桌面端'}
-            `;
         }
         
         // 初始化主应用
@@ -302,7 +296,18 @@
                 App.init();
             } else {
                 console.error('App 对象未定义');
-                alert('应用初始化失败，请刷新页面');
+                // 移除alert，改为更友好的错误提示
+                const contentArea = document.getElementById('content-area');
+                if (contentArea) {
+                    contentArea.innerHTML = `
+                        <div class="error-state">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3>应用初始化失败</h3>
+                            <p>请刷新页面重试</p>
+                            <button onclick="location.reload()" class="btn btn-primary">刷新页面</button>
+                        </div>
+                    `;
+                }
             }
         }, 100);
     });
