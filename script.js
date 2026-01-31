@@ -35,7 +35,7 @@ const App = {
         } catch (error) {
             console.error('应用初始化失败:', error);
             this.showErrorMessage(error);
-        },
+        }
     },
 
     showErrorMessage: function(error) {
