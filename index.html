@@ -18,21 +18,6 @@
     <link rel="stylesheet" href="mobile.css">
     
     <style>
-        /* 简化调试信息 */
-        .debug-info {
-            position: fixed;
-            bottom: 10px;
-            right: 10px;
-            background: rgba(0,0,0,0.8);
-            color: white;
-            padding: 8px 12px;
-            border-radius: 5px;
-            z-index: 9999;
-            font-size: 12px;
-            max-width: 300px;
-            display: none;
-        }
-        
         /* 预加载动画 */
         .preloader {
             position: fixed;
@@ -66,6 +51,17 @@
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
+        
+        /* 简化样式 */
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid rgba(26, 35, 126, 0.3);
+            border-radius: 50%;
+            border-top-color: #1a237e;
+            animation: spin 1s ease-in-out infinite;
+        }
     </style>
 </head>
 <body>
@@ -76,9 +72,6 @@
             <p>加载思维协同处理器...</p>
         </div>
     </div>
-    
-    <!-- 简化调试信息 -->
-    <div class="debug-info" id="debug-info"></div>
     
     <!-- 桌面端顶部栏 -->
     <div class="top-bar desktop-only">
@@ -304,16 +297,18 @@
     <script src="data-sync.js"></script>
     
     <script>
-    // 简化的初始化逻辑
+    // 简化初始化逻辑
     window.addEventListener('load', function() {
         console.log('页面加载完成，开始初始化应用...');
         
         // 隐藏预加载动画
         const preloader = document.getElementById('preloader');
         if (preloader) {
-            preloader.style.opacity = '0';
             setTimeout(() => {
-                preloader.style.display = 'none';
+                preloader.style.opacity = '0';
+                setTimeout(() => {
+                    preloader.style.display = 'none';
+                }, 300);
             }, 300);
         }
         
@@ -321,30 +316,35 @@
         setTimeout(function() {
             try {
                 if (typeof App !== 'undefined') {
+                    // 设置一个简单的移动端检测（不收集设备信息）
+                    if (window.innerWidth <= 768) {
+                        document.body.classList.add('mobile-mode');
+                    }
+                    
                     App.init();
                 } else {
                     console.error('App对象未定义');
                     document.getElementById('content-area').innerHTML = `
-                        <div class="error-state">
-                            <i class="fas fa-exclamation-triangle"></i>
+                        <div style="text-align: center; padding: 100px 20px;">
+                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #f44336; margin-bottom: 20px;"></i>
                             <h3>应用初始化失败</h3>
                             <p>脚本加载错误，请刷新页面</p>
-                            <button onclick="window.location.reload()" class="btn btn-primary">刷新页面</button>
+                            <button onclick="window.location.reload()" class="btn btn-primary" style="margin-top: 20px;">刷新页面</button>
                         </div>
                     `;
                 }
             } catch (error) {
                 console.error('初始化错误:', error);
                 document.getElementById('content-area').innerHTML = `
-                    <div class="error-state">
-                        <i class="fas fa-exclamation-triangle"></i>
+                    <div style="text-align: center; padding: 100px 20px;">
+                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #f44336; margin-bottom: 20px;"></i>
                         <h3>初始化错误</h3>
                         <p>${error.message}</p>
-                        <button onclick="window.location.reload()" class="btn btn-primary">刷新页面</button>
+                        <button onclick="window.location.reload()" class="btn btn-primary" style="margin-top: 20px;">刷新页面</button>
                     </div>
                 `;
             }
-        }, 300);
+        }, 500);
     });
     </script>
 </body>
