@@ -359,49 +359,5 @@
             }
         });
     </script>
-    <script>
-        // 调试模式
-        const DEBUG = false;
-        
-        // 初始化应用
-        document.addEventListener('DOMContentLoaded', function() {
-            console.log('DOM 加载完成，开始初始化应用...');
-            
-            // 移除调试信息显示
-            if (false) { // 始终不显示
-                document.getElementById('debug-info').style.display = 'block';
-            }
-            
-            // 初始化主应用
-            setTimeout(() => {
-                // 先检查App对象是否存在
-                if (typeof window.App === 'undefined') {
-                    console.error('App 对象未定义！当前全局对象：', Object.keys(window).filter(k => /App|DataManager/i.test(k)));
-                    
-                    // 尝试从全局查找
-                    const App = window.App;
-                    if (typeof App === 'undefined') {
-                        // 显示详细错误信息
-                        const contentArea = document.getElementById('content-area');
-                        if (contentArea) {
-                            contentArea.innerHTML = `
-                                <div style="text-align:center; padding:100px 20px;">
-                                    <h3>脚本加载失败</h3>
-                                    <p>请按F12打开开发者工具，查看Console选项卡中的错误信息</p>
-                                    <button onclick="location.reload()" style="padding:10px 20px; background:#5c6bc0; color:white; border:none; border-radius:6px; margin-top:20px;">
-                                        刷新页面
-                                    </button>
-                                </div>
-                            `;
-                        }
-                        return;
-                    }
-                }
-                
-                // 如果App存在，正常初始化
-                App.init();
-            }, 100);
-        });
-    </script>
 </body>
 </html>
