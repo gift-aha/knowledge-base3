@@ -1,3 +1,7 @@
+console.log('=== script.js 开始执行 ===');
+console.log('文件路径:', new Error().stack.split('\n')[1]);
+alert('script.js 已加载！');
+
 // ==================== 核心应用对象 ====================
 const App = {
     // 应用状态
@@ -2824,3 +2828,8 @@ window.onload = function() {
     console.log('页面已加载，初始化应用');
     App.init();
 };
+
+console.log('=== script.js 执行完成 ===');
+console.log('App 对象状态:', typeof App);
+console.log('DataManager 对象状态:', typeof DataManager);
+alert('script.js 执行完成！App已定义: ' + (typeof App !== 'undefined'));
