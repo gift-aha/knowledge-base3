@@ -277,6 +277,41 @@
     <script src="mobile-config.js"></script>
     <script src="mobile.js"></script>
     <script src="data-sync.js"></script>
-
+    <script>
+    // 调试模式
+    const DEBUG = false;
+    
+    // 初始化应用
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM 加载完成，开始初始化应用...');
+        
+        // 移除调试信息显示
+        if (false) { // 始终不显示
+            document.getElementById('debug-info').style.display = 'block';
+        }
+        
+        // 初始化主应用
+        setTimeout(() => {
+            if (typeof App !== 'undefined') {
+                App.init();
+            } else {
+                console.error('App 对象未定义');
+                // 移除alert，改为更友好的错误提示
+                const contentArea = document.getElementById('content-area');
+                if (contentArea) {
+                    contentArea.innerHTML = `
+                        <div class="error-state">
+                            <i class="fas fa-exclamation-triangle"></i>
+                            <h3>应用初始化失败</h3>
+                            <p>请刷新页面重试</p>
+                            <button onclick="location.reload()" class="btn btn-primary">刷新页面</button>
+                        </div>
+                    `;
+                }
+            }
+        }, 100);
+    });
+    </script>
+    
 </body>
 </html>
