@@ -1017,3 +1017,16 @@ html {
     right: 10px;
     font-size: 11px;
 }
+/* 隐藏空的移动端菜单项 */
+.mobile-nav-item:empty,
+.mobile-nav-item:not([data-view]),
+.mobile-nav-item[data-view=""] {
+    display: none !important;
+}
+
+/* 移动端只读模式样式 */
+.mobile-readonly-mode .btn[onclick*="save"],
+.mobile-readonly-mode .btn[onclick*="edit"],
+.mobile-readonly-mode .btn[onclick*="delete"] {
+    display: none !important;
+}
