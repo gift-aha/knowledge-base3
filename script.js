@@ -1232,7 +1232,7 @@ const App = {
                         <div class="detail-title">${model.name}</div>
                         <div class="detail-id">${model.id}</div>
                         <div style="margin-top: 10px;">
-                            ${model.tags ? model.tags.map(tag => `<span class="tag">${tag}</span>`).join(' ') : ''}
+                            ${model.tags ? model.tags.map(tag => `<span class="tag" onclick="App.filterByTag('${tag}')" style="cursor: pointer;">${tag}</span>`).join(' ') : ''}
                         </div>
                     </div>
                     <div style="color: var(--text-light); font-size: 0.9rem;">${model.date}</div>
@@ -1240,7 +1240,7 @@ const App = {
                 
                 <div class="action-buttons">
                     <button class="btn btn-warning" onclick="App.editModel('${model.id}')">
-                        <i class="fas fa-edit"></i> 编辑
+                        <i class="fas fa-edit"></i> 编辑此模型
                     </button>
                     <button class="btn btn-danger" onclick="App.openDeleteModal('model', '${model.id}')">
                         <i class="fas fa-trash"></i> 删除
@@ -1258,17 +1258,46 @@ const App = {
                 </div>
         `;
         
+        // 修复：来源思考单击回溯功能
         if (model.fromThought) {
+            const thoughtId = model.fromThought.replace('#', '');
+            const thought = DataManager.getThoughtById(model.fromThought);
+            const thoughtTitle = thought ? thought.title : model.fromThought;
+            
             html += `
                 <div class="detail-section">
                     <h4><i class="fas fa-link"></i> 来源思考</h4>
                     <div class="detail-section-content">
-                        <p>此模型来源于思考记录: <span style="color: var(--accent-color); font-weight: 500;">${model.fromThought}</span></p>
+                        <p>此模型来源于思考记录: 
+                            <a href="#" onclick="App.showThoughtDetail('#${thoughtId}'); return false;" 
+                               style="color: var(--accent-color); font-weight: 500; text-decoration: underline; cursor: pointer;">
+                               ${thoughtTitle} (${model.fromThought})
+                            </a>
+                        </p>
                     </div>
                 </div>
             `;
         }
-        
+                // 添加关联模型显示
+        if (model.relatedModels && model.relatedModels.length > 0) {
+            html += `
+                <div class="detail-section">
+                    <h4><i class="fas fa-project-diagram"></i> 关联模型</h4>
+                    <div class="detail-section-content">
+                        <div class="tag-list">
+                            ${model.relatedModels.map(relatedId => {
+                                const relatedModel = DataManager.getModelById(relatedId);
+                                if (relatedModel) {
+                                    return `<span class="tag" onclick="App.showModelDetail('${relatedId}')" style="cursor: pointer;">${relatedId}: ${relatedModel.name}</span>`;
+                                }
+                                return `<span class="tag">${relatedId}</span>`;
+                            }).join(' ')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+         
         html += `</div>`;
         document.getElementById('content-area').innerHTML = html;
     },
@@ -2604,4 +2633,236 @@ if (App.isMobile()) {
 } else {
     // 电脑端：使用本地存储
     DataManager.init();
+}
+// 从思考记录自动提取关联模型和描述
+extractModelInfoFromThought: function(thoughtId) {
+    const thought = DataManager.getThoughtById(thoughtId);
+    if (!thought) return { relatedModels: [], modelDescription: '' };
+    
+    let relatedModels = [];
+    let modelDescription = '';
+    
+    // 从"模型延伸与整合"中提取模型ID
+    if (thought.sections && thought.sections["模型延伸与整合"]) {
+        const content = thought.sections["模型延伸与整合"];
+        
+        // 提取模型ID (例如: M-74 M-73 M-77 M-76)
+        const modelIdRegex = /M-\d+/g;
+        const matches = content.match(modelIdRegex);
+        if (matches) {
+            relatedModels = [...new Set(matches)]; // 去重
+        }
+        
+        // 提取"新建核心模型"标题下的内容作为描述
+        const lines = content.split('\n');
+        let inNewModelSection = false;
+        let newModelContent = [];
+        
+        for (const line of lines) {
+            if (line.includes('新建核心模型') || line.includes('**新建核心模型**')) {
+                inNewModelSection = true;
+                continue;
+            }
+            
+            if (inNewModelSection) {
+                // 如果遇到下一个标题，停止
+                if (line.trim().match(/^[#*]*\s*\*\*/)) {
+                    break;
+                }
+                newModelContent.push(line.trim());
+            }
+        }
+        
+        if (newModelContent.length > 0) {
+            modelDescription = newModelContent.join('\n');
+        }
+    }
+    
+    return { relatedModels, modelDescription };
+},
+
+// 改进editModel方法
+editModel: function(id) {
+    const model = DataManager.getModelById(id);
+    if (!model) {
+        this.showMessage('未找到思维模型', 'error');
+        return;
+    }
+    
+    // 跳转到添加模型页面，并填充内容
+    this.loadView('add-model');
+    
+    // 延迟填充内容
+    setTimeout(() => {
+        const idInput = document.getElementById('model-id');
+        const nameInput = document.getElementById('model-name');
+        const fromThoughtInput = document.getElementById('model-from-thought');
+        const descInput = document.getElementById('model-description');
+        
+        if (idInput) idInput.value = model.id;
+        if (nameInput) nameInput.value = model.name;
+        if (fromThoughtInput) fromThoughtInput.value = model.fromThought || '';
+        if (descInput) descInput.value = model.description;
+        
+        // 创建关联模型输入框
+        this.createRelatedModelsInput(model);
+        
+        // 添加自动提取按钮
+        this.addAutoExtractButton(model);
+        
+        this.showMessage('已加载模型内容，可编辑后保存', 'info');
+    }, 300);
+},
+
+// 创建关联模型输入框
+createRelatedModelsInput: function(model) {
+    const inputSection = document.querySelector('.input-section');
+    if (!inputSection) return;
+    
+    // 检查是否已存在关联模型输入框
+    let relatedModelsDiv = document.getElementById('related-models-input');
+    if (!relatedModelsDiv) {
+        relatedModelsDiv = document.createElement('div');
+        relatedModelsDiv.id = 'related-models-input';
+        relatedModelsDiv.className = 'form-group';
+        
+        // 插入到模型描述之后
+        const descInput = document.getElementById('model-description');
+        if (descInput && descInput.parentNode) {
+            descInput.parentNode.insertBefore(relatedModelsDiv, descInput.nextSibling);
+        }
+    }
+    
+    // 更新关联模型输入框内容
+    const relatedModels = model.relatedModels || [];
+    relatedModelsDiv.innerHTML = `
+        <label for="related-models">关联模型 (空格或逗号分隔，例如: M-74 M-73 M-77)</label>
+        <input type="text" id="related-models" value="${relatedModels.join(' ')}" placeholder="输入关联模型ID">
+        <div style="font-size: 0.85rem; color: var(--text-light); margin-top: 5px;">
+            <i class="fas fa-info-circle"></i> 可从来源思考中自动提取
+        </div>
+    `;
+},
+
+// 添加自动提取按钮
+addAutoExtractButton: function(model) {
+    const btnGroup = document.querySelector('.btn-group');
+    if (!btnGroup) return;
+    
+    // 检查是否已存在提取按钮
+    let extractBtn = document.getElementById('extract-from-thought');
+    if (!extractBtn) {
+        extractBtn = document.createElement('button');
+        extractBtn.id = 'extract-from-thought';
+        extractBtn.className = 'btn btn-warning';
+        extractBtn.innerHTML = '<i class="fas fa-magic"></i> 从来源思考提取';
+        extractBtn.onclick = () => this.autoExtractModelInfo();
+        
+        btnGroup.insertBefore(extractBtn, btnGroup.firstChild);
+    }
+    
+    // 添加提取状态提示
+    const statusDiv = document.createElement('div');
+    statusDiv.id = 'extract-status';
+    statusDiv.style.marginTop = '10px';
+    statusDiv.style.fontSize = '0.9rem';
+    btnGroup.parentNode.insertBefore(statusDiv, btnGroup.nextSibling);
+},
+
+// 自动提取模型信息
+autoExtractModelInfo: function() {
+    const fromThoughtInput = document.getElementById('model-from-thought');
+    if (!fromThoughtInput || !fromThoughtInput.value.trim()) {
+        this.showMessage('请输入来源思考ID', 'warning');
+        return;
+    }
+    
+    const thoughtId = fromThoughtInput.value.trim();
+    const { relatedModels, modelDescription } = this.extractModelInfoFromThought(thoughtId);
+    
+    // 更新关联模型输入框
+    const relatedModelsInput = document.getElementById('related-models');
+    if (relatedModelsInput && relatedModels.length > 0) {
+        relatedModelsInput.value = relatedModels.join(' ');
+    }
+    
+    // 更新模型描述
+    const descInput = document.getElementById('model-description');
+    if (descInput && modelDescription && descInput.value === '') {
+        descInput.value = modelDescription;
+    }
+    
+    // 显示提取结果
+    const statusDiv = document.getElementById('extract-status');
+    if (statusDiv) {
+        if (relatedModels.length > 0 || modelDescription) {
+            statusDiv.innerHTML = `
+                <div style="color: var(--success-color);">
+                    <i class="fas fa-check-circle"></i> 提取成功:
+                    ${relatedModels.length > 0 ? `关联模型: ${relatedModels.join(', ')}` : ''}
+                    ${modelDescription ? '<br>已提取模型描述' : ''}
+                </div>
+            `;
+        } else {
+            statusDiv.innerHTML = `
+                <div style="color: var(--warning-color);">
+                    <i class="fas fa-exclamation-triangle"></i> 未找到可提取的信息
+                </div>
+            `;
+        }
+        
+        // 5秒后自动隐藏
+        setTimeout(() => {
+            statusDiv.innerHTML = '';
+        }, 5000);
+    }
+    
+    this.showMessage('已从来源思考提取模型信息', 'success');
+},
+
+// 修改saveModel方法以保存关联模型
+saveModel: function() {
+    const idInput = document.getElementById('model-id');
+    const nameInput = document.getElementById('model-name');
+    const descInput = document.getElementById('model-description');
+    const relatedModelsInput = document.getElementById('related-models');
+    
+    if (!nameInput || !nameInput.value.trim()) {
+        this.showMessage('请输入模型名称', 'warning');
+        return;
+    }
+    
+    if (!descInput || !descInput.value.trim()) {
+        this.showMessage('请输入模型描述', 'warning');
+        return;
+    }
+    
+    // 解析关联模型
+    const relatedModels = relatedModelsInput ? 
+        relatedModelsInput.value.trim().split(/[\s,]+/).filter(id => id.startsWith('M-')) : 
+        [];
+    
+    const modelData = {
+        id: idInput && idInput.value.trim() ? idInput.value.trim() : undefined,
+        name: nameInput.value.trim(),
+        description: descInput.value.trim(),
+        date: new Date().toISOString().split('T')[0],
+        tags: [],
+        fromThought: document.getElementById('model-from-thought')?.value.trim() || null,
+        relatedModels: relatedModels
+    };
+    
+    const model = DataManager.addModel(modelData);
+    
+    // 显示成功消息
+    this.showMessage(`思维模型已保存: ${model.id}`, 'success');
+    
+    // 刷新当前视图
+    this.loadView('models');
+    
+    // 清空输入框
+    if (idInput) idInput.value = '';
+    if (nameInput) nameInput.value = '';
+    if (descInput) descInput.value = '';
+    if (relatedModelsInput) relatedModelsInput.value = '';
 }
