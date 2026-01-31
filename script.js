@@ -1122,6 +1122,9 @@ const App = {
             if (nameInput) nameInput.value = model.name;
             if (fromThoughtInput) fromThoughtInput.value = model.fromThought || '';
             if (descInput) descInput.value = model.description;
+
+         // 添加自动提取按钮
+            this.addAutoExtractButton(id);       
             
             this.showMessage('已加载模型内容，可编辑后保存', 'info');
         }, 300);
