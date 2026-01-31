@@ -278,39 +278,86 @@
     <script src="mobile.js"></script>
     <script src="data-sync.js"></script>
     <script>
-    // 调试模式
-    const DEBUG = false;
-    
-    // 初始化应用
-    document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM 加载完成，开始初始化应用...');
+        // 调试模式
+        const DEBUG = false;
         
-        // 移除调试信息显示
-        if (false) { // 始终不显示
-            document.getElementById('debug-info').style.display = 'block';
-        }
-        
-        // 初始化主应用
-        setTimeout(() => {
-            if (typeof App !== 'undefined') {
-                App.init();
-            } else {
-                console.error('App 对象未定义');
-                // 移除alert，改为更友好的错误提示
+        // 修复版：安全的初始化应用
+        function initializeApp() {
+            console.log('尝试初始化应用...');
+            
+            // 检查App对象是否已定义
+            if (typeof App === 'undefined') {
+                console.error('错误：App对象未定义');
+                
+                // 显示用户友好的错误信息
                 const contentArea = document.getElementById('content-area');
                 if (contentArea) {
                     contentArea.innerHTML = `
-                        <div class="error-state">
-                            <i class="fas fa-exclamation-triangle"></i>
-                            <h3>应用初始化失败</h3>
-                            <p>请刷新页面重试</p>
-                            <button onclick="location.reload()" class="btn btn-primary">刷新页面</button>
+                        <div class="error-state" style="text-align:center; padding:100px 20px;">
+                            <h2>系统初始化失败</h2>
+                            <p style="color:#666; margin:15px 0;">核心脚本加载失败，请检查：</p>
+                            <ol style="text-align:left; max-width:400px; margin:20px auto; padding-left:20px;">
+                                <li>script.js文件是否正确加载</li>
+                                <li>浏览器控制台是否有错误信息</li>
+                                <li>尝试刷新页面或清除缓存</li>
+                            </ol>
+                            <div style="margin-top:30px;">
+                                <button onclick="location.reload()" class="btn btn-primary" style="padding:10px 20px; background:#5c6bc0; color:white; border:none; border-radius:6px; cursor:pointer;">
+                                    刷新页面
+                                </button>
+                            </div>
                         </div>
                     `;
                 }
+                return false;
             }
-        }, 100);
-    });
+            
+            // 检查App.init是否存在
+            if (typeof App.init !== 'function') {
+                console.error('错误：App.init不是函数');
+                return false;
+            }
+            
+            try {
+                console.log('开始初始化App...');
+                App.init();
+                console.log('App初始化成功');
+                return true;
+            } catch (error) {
+                console.error('初始化过程中出错:', error);
+                return false;
+            }
+        }
+        
+        // 当DOM加载完成时尝试初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            console.log('DOMContentLoaded事件触发');
+            
+            // 延迟执行，确保所有脚本都已加载
+            setTimeout(function() {
+                // 第一次尝试
+                if (!initializeApp()) {
+                    console.log('第一次初始化失败，5秒后重试...');
+                    
+                    // 5秒后重试
+                    setTimeout(function() {
+                        if (!initializeApp()) {
+                            console.error('多次初始化尝试均失败');
+                        }
+                    }, 5000);
+                }
+            }, 500); // 增加延迟到500ms，确保script.js已加载
+        });
+        
+        // 备用：当页面完全加载时也尝试初始化
+        window.addEventListener('load', function() {
+            console.log('window.load事件触发');
+            
+            // 如果还没初始化成功，再试一次
+            if (typeof window.appInitialized === 'undefined') {
+                setTimeout(initializeApp, 100);
+            }
+        });
     </script>
     
 </body>
