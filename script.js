@@ -705,16 +705,164 @@ const App = {
     },
     
     renderTagReview: function() {
-        document.getElementById('content-area').innerHTML = `
+        // 收集所有未分类的标签
+        const allTags = DataManager.tags;
+        const categorizedTags = new Set();
+        
+        // 获取所有已分类的标签
+        Object.values(DataManager.tagCategories).forEach(category => {
+            category.forEach(tag => categorizedTags.add(tag));
+        });
+        
+        // 找出未分类的标签
+        const uncategorizedTags = Object.keys(allTags).filter(tag => 
+            !categorizedTags.has(tag) && allTags[tag] > 0
+        ).map(tag => ({
+            tag,
+            count: allTags[tag],
+            items: this.getItemsByTag(tag)
+        })).sort((a, b) => b.count - a.count);
+        
+        // 按类别统计标签
+        const categorized = {};
+        Object.keys(DataManager.tagCategories).forEach(category => {
+            categorized[category] = [];
+            DataManager.tagCategories[category].forEach(tag => {
+                if (allTags[tag] > 0) {
+                    categorized[category].push({
+                        tag,
+                        count: allTags[tag]
+                    });
+                }
+            });
+            // 按数量排序
+            categorized[category].sort((a, b) => b.count - a.count);
+        });
+        
+        let html = `
             <div class="content-header">
                 <h2>标签复核中心</h2>
-                <p>系统版本: ${DataManager.currentVersion}</p>
+                <p>系统版本: ${DataManager.currentVersion} | 共 ${Object.keys(allTags).length} 个标签</p>
             </div>
-            <div class="empty-state">
-                <i class="fas fa-tags"></i>
-                <p>标签复核功能</p>
-            </div>
+            
+            <div class="tag-review-container">
         `;
+        
+        // 未分类标签
+        if (uncategorizedTags.length > 0) {
+            html += `
+                <div class="tag-review-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-exclamation-circle"></i> 待分类标签 (${uncategorizedTags.length})</h3>
+                        <p>这些标签尚未归类，请为它们选择合适的分类</p>
+                    </div>
+                    <div class="tag-grid">
+            `;
+            
+            uncategorizedTags.forEach(({ tag, count, items }) => {
+                html += `
+                    <div class="tag-review-card">
+                        <div class="tag-review-header">
+                            <span class="tag-badge">${tag}</span>
+                            <span class="tag-count">${count} 次使用</span>
+                        </div>
+                        <div class="tag-actions">
+                            <select class="category-select" id="category-${tag.replace(/\s/g, '-')}" onchange="App.assignTagToCategory('${tag}', this.value)">
+                                <option value="">选择分类...</option>
+                `;
+                
+                Object.keys(DataManager.tagCategories).forEach(category => {
+                    html += `<option value="${category}">${category}</option>`;
+                });
+                
+                html += `
+                            </select>
+                            <button class="btn btn-sm btn-danger" onclick="App.deleteTag('${tag}')" title="删除此标签">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </div>
+                        <div class="tag-preview">
+                            <small>${this.formatTagPreview(items)}</small>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="tag-review-section">
+                    <div class="section-header">
+                        <h3><i class="fas fa-check-circle"></i> 所有标签已分类</h3>
+                        <p>没有需要复核的标签</p>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 已分类标签
+        html += `
+            <div class="tag-review-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-check-circle"></i> 已分类标签</h3>
+                    <p>按类别管理的标签系统</p>
+                </div>
+        `;
+        
+        Object.keys(categorized).forEach(category => {
+            if (categorized[category].length > 0) {
+                html += `
+                    <div class="category-section">
+                        <h4>${category} (${categorized[category].length})</h4>
+                        <div class="tag-list">
+                `;
+                
+                categorized[category].forEach(({ tag, count }) => {
+                    html += `
+                        <div class="categorized-tag">
+                            <span class="tag-badge">${tag}</span>
+                            <span class="tag-count">${count}</span>
+                            <button class="btn btn-xs btn-warning" onclick="App.removeTagFromCategory('${tag}')" title="移出此分类">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        </div>
+                    `;
+                });
+                
+                html += `
+                        </div>
+                    </div>
+                `;
+            }
+        });
+        
+        html += `
+                </div>
+            </div>
+        </div>`;
+        
+        document.getElementById('content-area').innerHTML = html;
+    },
+    
+    // 格式化标签预览
+    formatTagPreview: function(items) {
+        if (!items || items.length === 0) return '未使用';
+        
+        const previewItems = items.slice(0, 2).map(item => 
+            `${item.type}: ${item.title.substring(0, 20)}${item.title.length > 20 ? '...' : ''}`
+        );
+        
+        let result = previewItems.join('、');
+        if (items.length > 2) {
+            result += `等 ${items.length} 个项目`;
+        } else {
+            result += ` (${items.length} 个)`;
+        }
+        
+        return result;
     },
     
     renderNetworkAnalysis: function() {
