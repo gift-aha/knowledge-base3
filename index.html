@@ -18,60 +18,25 @@
     <link rel="stylesheet" href="mobile.css">
     
     <style>
-        /* 预加载动画 */
-        .preloader {
+        /* 临时样式用于调试 */
+        .debug-info {
             position: fixed;
-            top: 0;
-            left: 0;
-            right: 0;
-            bottom: 0;
-            background: linear-gradient(135deg, #1a237e 0%, #283593 100%);
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            z-index: 9999;
-            transition: opacity 0.3s;
-        }
-        
-        .preloader-content {
-            text-align: center;
+            top: 10px;
+            right: 10px;
+            background: rgba(0,0,0,0.8);
             color: white;
-        }
-        
-        .preloader-spinner {
-            width: 50px;
-            height: 50px;
-            border: 3px solid rgba(255, 255, 255, 0.3);
-            border-radius: 50%;
-            border-top-color: white;
-            animation: spin 1s ease-in-out infinite;
-            margin: 0 auto 20px;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
-        }
-        
-        /* 简化样式 */
-        .loading {
-            display: inline-block;
-            width: 20px;
-            height: 20px;
-            border: 3px solid rgba(26, 35, 126, 0.3);
-            border-radius: 50%;
-            border-top-color: #1a237e;
-            animation: spin 1s ease-in-out infinite;
+            padding: 10px;
+            border-radius: 5px;
+            z-index: 9999;
+            font-size: 12px;
+            max-width: 300px;
+            display: none;
         }
     </style>
 </head>
 <body>
-    <!-- 预加载动画 -->
-    <div class="preloader" id="preloader">
-        <div class="preloader-content">
-            <div class="preloader-spinner"></div>
-            <p>加载思维协同处理器...</p>
-        </div>
-    </div>
+    <!-- 调试信息 -->
+    <div class="debug-info" id="debug-info"></div>
     
     <!-- 桌面端顶部栏 -->
     <div class="top-bar desktop-only">
@@ -80,10 +45,13 @@
             <div class="logo-text">思维协同处理器</div>
         </div>
         <div class="system-info">
-            <span>版本: <strong id="current-version">v22.48</strong></span>
-            <span>| 模型: <strong id="total-models">0</strong></span>
-            <span>| 思考: <strong id="total-thoughts">0</strong></span>
-            <span>| 标签: <strong id="total-tags">0</strong></span>
+            <span>当前版本: <strong id="current-version">v22.48</strong></span>
+            <span style="margin: 0 5px;">|</span>
+            <span>模型总数: <strong id="total-models">0</strong></span>
+            <span style="margin: 0 5px;">|</span>
+            <span>思考记录: <strong id="total-thoughts">0</strong></span>
+            <span style="margin: 0 5px;">|</span>
+            <span>标签数: <strong id="total-tags">0</strong></span>
         </div>
         <div class="sync-controls">
             <button class="sync-btn" id="sync-btn" title="同步数据">
@@ -92,7 +60,7 @@
             <button class="sync-btn" id="export-btn" title="导出数据">
                 <i class="fas fa-download"></i> 导出
             </button>
-            <button class="sync-btn" id="github-export-btn" title="导出到GitHub文件">
+            <button class="sync-btn" id="github-export-btn" title="导出到GitHub文件" onclick="GitHubDataSync.exportDataForGitHub()">
                 <i class="fas fa-cloud-upload-alt"></i> GitHub
             </button>
         </div>
@@ -198,7 +166,7 @@
         
         <!-- 主内容区 -->
         <div class="content-area" id="content-area">
-            <!-- 内容将由JavaScript动态填充 -->
+            <div id="loading" class="loading" style="margin: 100px auto;"></div>
         </div>
         
         <!-- 右侧面板 -->
@@ -233,6 +201,16 @@
                 </div>
             </div>
             
+            <div class="network-section">
+                <h3><i class="fas fa-project-diagram"></i> 模型关联网络</h3>
+                <div class="network-graph" id="right-panel-network">
+                    <div style="text-align: center; padding: 30px; color: #666;">
+                        <i class="fas fa-project-diagram" style="font-size: 24px;"></i>
+                        <p style="margin-top: 10px; font-size: 14px;">模型关联网络</p>
+                    </div>
+                </div>
+            </div>
+            
             <div class="data-section">
                 <h3><i class="fas fa-database"></i> 数据操作</h3>
                 <div class="data-actions">
@@ -241,6 +219,9 @@
                     </button>
                     <button class="data-btn import" id="import-data-btn">
                         <i class="fas fa-upload"></i> 导入数据文件
+                    </button>
+                    <button class="data-btn backup" id="github-export-btn">
+                        <i class="fab fa-github"></i> 导出到GitHub
                     </button>
                 </div>
             </div>
@@ -297,54 +278,33 @@
     <script src="data-sync.js"></script>
     
     <script>
-    // 简化初始化逻辑
-    window.addEventListener('load', function() {
-        console.log('页面加载完成，开始初始化应用...');
+    // 调试模式
+    const DEBUG = true;
+    
+    // 初始化应用
+    document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM 加载完成，开始初始化应用...');
         
-        // 隐藏预加载动画
-        const preloader = document.getElementById('preloader');
-        if (preloader) {
-            setTimeout(() => {
-                preloader.style.opacity = '0';
-                setTimeout(() => {
-                    preloader.style.display = 'none';
-                }, 300);
-            }, 300);
+        // 显示调试信息
+        if (DEBUG) {
+            document.getElementById('debug-info').style.display = 'block';
+            document.getElementById('debug-info').innerHTML = `
+                初始化中...<br>
+                用户代理: ${navigator.userAgent}<br>
+                屏幕尺寸: ${window.innerWidth}×${window.innerHeight}<br>
+                设备类型: ${/Mobi|Android/i.test(navigator.userAgent) ? '移动端' : '桌面端'}
+            `;
         }
         
-        // 初始化应用
-        setTimeout(function() {
-            try {
-                if (typeof App !== 'undefined') {
-                    // 设置一个简单的移动端检测（不收集设备信息）
-                    if (window.innerWidth <= 768) {
-                        document.body.classList.add('mobile-mode');
-                    }
-                    
-                    App.init();
-                } else {
-                    console.error('App对象未定义');
-                    document.getElementById('content-area').innerHTML = `
-                        <div style="text-align: center; padding: 100px 20px;">
-                            <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #f44336; margin-bottom: 20px;"></i>
-                            <h3>应用初始化失败</h3>
-                            <p>脚本加载错误，请刷新页面</p>
-                            <button onclick="window.location.reload()" class="btn btn-primary" style="margin-top: 20px;">刷新页面</button>
-                        </div>
-                    `;
-                }
-            } catch (error) {
-                console.error('初始化错误:', error);
-                document.getElementById('content-area').innerHTML = `
-                    <div style="text-align: center; padding: 100px 20px;">
-                        <i class="fas fa-exclamation-triangle" style="font-size: 48px; color: #f44336; margin-bottom: 20px;"></i>
-                        <h3>初始化错误</h3>
-                        <p>${error.message}</p>
-                        <button onclick="window.location.reload()" class="btn btn-primary" style="margin-top: 20px;">刷新页面</button>
-                    </div>
-                `;
+        // 初始化主应用
+        setTimeout(() => {
+            if (typeof App !== 'undefined') {
+                App.init();
+            } else {
+                console.error('App 对象未定义');
+                alert('应用初始化失败，请刷新页面');
             }
-        }, 500);
+        }, 100);
     });
     </script>
 </body>
