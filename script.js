@@ -2335,14 +2335,16 @@ const DataManager = {
                         thought.tags = tagsPart.replace(/[：:]\s*/, '').split(/[、，,\s]+/).filter(tag => tag.trim());
                     }
                 }
-                            // 从模型延伸与整合提取新建模型ID
-            if (currentSection === '模型延伸与整合') {
-                const modelIdRegex = /M-\d+/g;
-                const matches = trimmed.match(modelIdRegex);
-                if (matches) {
-                    thought.newModels = [...new Set([...thought.newModels, ...matches])];
+                
+                // 从模型延伸与整合提取新建模型ID
+                if (currentSection === '模型延伸与整合') {
+                    const modelIdRegex = /M-\d+/g;
+                    const matches = trimmed.match(modelIdRegex);
+                    if (matches) {
+                        thought.newModels = [...new Set([...thought.newModels, ...matches])];
+                    }
                 }
-            }
+            }  // <-- 这里添加缺失的闭合花括号
         }
         
         // 清理每个部分
@@ -2366,32 +2368,6 @@ const DataManager = {
                 thought.title = `思考记录 ${thought.id}`;
             }
         }
-        
-        return thought;
-    },
-    
-    addStructuredThought: function(text) {
-        const thought = this.parseStructuredContent(text);
-        
-        // 检查ID是否已存在
-        const existingIndex = this.thoughts.findIndex(t => t.id === thought.id);
-        if (existingIndex >= 0) {
-            // 更新现有思考
-            this.thoughts[existingIndex] = thought;
-        } else {
-            // 添加到数组开头
-            this.thoughts.unshift(thought);
-        }
-        
-        // 更新标签
-        if (thought.tags && Array.isArray(thought.tags)) {
-            thought.tags.forEach(tag => {
-                this.tags[tag] = (this.tags[tag] || 0) + 1;
-            });
-        }
-        
-        // 保存数据
-        this.save();
         
         return thought;
     },
