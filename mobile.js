@@ -29,24 +29,8 @@ const MobileManager = {
             });
         }
         
-        // 移动端搜索按钮
-        const searchToggle = document.getElementById('mobile-search-toggle');
-        const searchBar = document.getElementById('mobile-search-bar');
-        if (searchToggle && searchBar) {
-            searchToggle.addEventListener('click', (e) => {
-                e.stopPropagation();
-                searchBar.classList.toggle('active');
-                searchToggle.classList.toggle('active');
-                
-                // 如果打开搜索栏，聚焦输入框
-                if (searchBar.classList.contains('active')) {
-                    setTimeout(() => {
-                        const searchInput = document.getElementById('mobile-search-input');
-                        if (searchInput) searchInput.focus();
-                    }, 100);
-                }
-            });
-        }
+        // 移动端搜索功能
+        this.bindMobileSearchEvents();
         
         // 移动端视图切换按钮
         const viewToggle = document.getElementById('mobile-view-toggle');
@@ -56,32 +40,6 @@ const MobileManager = {
                 e.stopPropagation();
                 viewSwitcher.classList.toggle('active');
                 viewToggle.classList.toggle('active');
-            });
-        }
-        
-        // 移动端搜索清除按钮
-        const searchClear = document.getElementById('mobile-search-clear');
-        const mobileSearchInput = document.getElementById('mobile-search-input');
-        if (searchClear && mobileSearchInput) {
-            searchClear.addEventListener('click', () => {
-                mobileSearchInput.value = '';
-                mobileSearchInput.focus();
-                App.performSearch('');
-            });
-        }
-        
-        // 移动端搜索输入
-        if (mobileSearchInput) {
-            mobileSearchInput.addEventListener('input', (e) => {
-                App.performSearch(e.target.value);
-            });
-            
-            mobileSearchInput.addEventListener('keypress', (e) => {
-                if (e.key === 'Enter') {
-                    App.performSearch(e.target.value);
-                    // 隐藏搜索栏
-                    if (searchBar) searchBar.classList.remove('active');
-                }
             });
         }
         
@@ -100,7 +58,9 @@ const MobileManager = {
                 
                 // 加载视图
                 const view = item.getAttribute('data-view');
-                App.loadView(view);
+                if (App && App.loadView) {
+                    App.loadView(view);
+                }
                 
                 // 滚动到顶部
                 window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -115,7 +75,9 @@ const MobileManager = {
                 e.stopPropagation();
                 
                 const view = option.getAttribute('data-view');
-                App.loadView(view);
+                if (App && App.loadView) {
+                    App.loadView(view);
+                }
                 
                 // 更新活动状态
                 viewOptions.forEach(opt => opt.classList.remove('active'));
@@ -125,6 +87,124 @@ const MobileManager = {
                 if (viewSwitcher) viewSwitcher.classList.remove('active');
             });
         });
+    },
+    
+    bindMobileSearchEvents: function() {
+        console.log('绑定移动端搜索事件');
+        
+        // 移动端搜索按钮
+        const searchToggle = document.getElementById('mobile-search-toggle');
+        const searchBar = document.getElementById('mobile-search-bar');
+        
+        if (searchToggle && searchBar) {
+            // 防止重复绑定
+            searchToggle.removeEventListener('click', this.handleSearchToggle);
+            searchToggle.addEventListener('click', this.handleSearchToggle.bind(this));
+        }
+        
+        // 移动端搜索清除按钮
+        const searchClear = document.getElementById('mobile-search-clear');
+        const mobileSearchInput = document.getElementById('mobile-search-input');
+        
+        if (searchClear && mobileSearchInput) {
+            searchClear.addEventListener('click', (e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                
+                mobileSearchInput.value = '';
+                mobileSearchInput.focus();
+                
+                // 执行搜索（空搜索将显示所有内容）
+                if (App && App.performSearch) {
+                    App.performSearch('');
+                }
+            });
+        }
+        
+        // 移动端搜索输入事件
+        if (mobileSearchInput) {
+            // 输入时搜索
+            let searchTimeout;
+            mobileSearchInput.addEventListener('input', (e) => {
+                clearTimeout(searchTimeout);
+                searchTimeout = setTimeout(() => {
+                    if (App && App.performSearch) {
+                        App.performSearch(e.target.value);
+                    }
+                }, 300);
+            });
+            
+            // 回车键搜索
+            mobileSearchInput.addEventListener('keypress', (e) => {
+                if (e.key === 'Enter') {
+                    e.preventDefault();
+                    if (App && App.performSearch) {
+                        App.performSearch(e.target.value);
+                    }
+                    // 隐藏搜索栏
+                    if (searchBar) searchBar.classList.remove('active');
+                    if (searchToggle) searchToggle.classList.remove('active');
+                }
+            });
+        }
+        
+        // 点击其他地方关闭搜索
+        document.addEventListener('click', (e) => {
+            const searchBar = document.getElementById('mobile-search-bar');
+            const searchToggle = document.getElementById('mobile-search-toggle');
+            
+            if (searchBar && searchBar.classList.contains('active')) {
+                // 如果点击的不是搜索相关元素
+                const isSearchElement = 
+                    (searchBar && searchBar.contains(e.target)) ||
+                    (searchToggle && (searchToggle === e.target || searchToggle.contains(e.target)));
+                
+                if (!isSearchElement) {
+                    searchBar.classList.remove('active');
+                    if (searchToggle) {
+                        searchToggle.classList.remove('active');
+                    }
+                }
+            }
+        });
+    },
+    
+    handleSearchToggle: function(e) {
+        e.preventDefault();
+        e.stopPropagation();
+        
+        const searchToggle = e.currentTarget;
+        const searchBar = document.getElementById('mobile-search-bar');
+        
+        if (!searchBar) return;
+        
+        console.log('移动端搜索按钮点击');
+        
+        // 切换搜索栏显示
+        searchBar.classList.toggle('active');
+        searchToggle.classList.toggle('active');
+        
+        // 如果打开搜索栏，聚焦输入框
+        if (searchBar.classList.contains('active')) {
+            setTimeout(() => {
+                const searchInput = document.getElementById('mobile-search-input');
+                if (searchInput) {
+                    searchInput.focus();
+                    // 移动端虚拟键盘可能遮挡，滚动到可视区域
+                    searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }, 100);
+        } else {
+            // 如果关闭搜索栏，清空搜索并恢复视图
+            const searchInput = document.getElementById('mobile-search-input');
+            if (searchInput) {
+                searchInput.value = '';
+            }
+            // 恢复之前的视图
+            if (App && App.currentView && App.loadView) {
+                App.loadView(App.currentView);
+            }
+        }
     },
     
     adjustMobileLayout: function() {
@@ -156,244 +236,4 @@ window.addEventListener('resize', function() {
     } else {
         document.body.classList.remove('mobile-mode');
     }
-});
-// 移动端搜索功能修复
-initMobileSearch: function() {
-    console.log('初始化移动端搜索功能');
-    
-    // 搜索切换按钮
-    const searchToggle = document.getElementById('mobile-search-toggle');
-    const searchBar = document.getElementById('mobile-search-bar');
-    
-    if (searchToggle && searchBar) {
-        // 移除现有事件监听器
-        searchToggle.replaceWith(searchToggle.cloneNode(true));
-        const newSearchToggle = document.getElementById('mobile-search-toggle');
-        
-        newSearchToggle.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            searchBar.classList.toggle('active');
-            newSearchToggle.classList.toggle('active');
-            
-            // 如果打开搜索栏，聚焦输入框
-            if (searchBar.classList.contains('active')) {
-                setTimeout(() => {
-                    const searchInput = document.getElementById('mobile-search-input');
-                    if (searchInput) {
-                        searchInput.focus();
-                        // 移动端虚拟键盘可能遮挡，滚动到可视区域
-                        searchInput.scrollIntoView({ behavior: 'smooth', block: 'center' });
-                    }
-                }, 100);
-            }
-        });
-    }
-}    
-    
-    // 搜索清除按钮
-    const searchClear = document.getElementById('mobile-search-clear');
-    const mobileSearchInput = document.getElementById('mobile-search-input');
-    
-    if (searchClear && mobileSearchInput) {
-        searchClear.addEventListener('click', (e) => {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            mobileSearchInput.value = '';
-            mobileSearchInput.focus();
-            
-            // 执行搜索（空搜索将显示所有内容）
-            if (typeof App !== 'undefined') {
-                App.performSearch('');
-            }
-        });
-    }
-    
-    // 搜索输入事件
-    if (mobileSearchInput) {
-        // 移除现有事件监听器
-        mobileSearchInput.replaceWith(mobileSearchInput.cloneNode(true));
-        const newSearchInput = document.getElementById('mobile-search-input');
-        
-        // 输入时搜索
-        let searchTimeout;
-        newSearchInput.addEventListener('input', (e) => {
-            clearTimeout(searchTimeout);
-            searchTimeout = setTimeout(() => {
-                if (typeof App !== 'undefined') {
-                    App.performSearch(e.target.value);
-                }
-            }, 300);
-        });
-        
-        // 回车键搜索
-        newSearchInput.addEventListener('keypress', (e) => {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                if (typeof App !== 'undefined') {
-                    App.performSearch(e.target.value);
-                }
-                // 隐藏搜索栏
-                if (searchBar) {
-                    searchBar.classList.remove('active');
-                }
-                if (searchToggle) {
-                    searchToggle.classList.remove('active');
-                }
-            }
-        });
-    }
-    
-    // 点击其他地方关闭搜索
-    document.addEventListener('click', (e) => {
-        const searchBar = document.getElementById('mobile-search-bar');
-        const searchToggle = document.getElementById('mobile-search-toggle');
-        const mobileSearchInput = document.getElementById('mobile-search-input');
-        
-        if (searchBar && searchBar.classList.contains('active')) {
-            // 如果点击的不是搜索相关元素
-            if (!searchBar.contains(e.target) && 
-                !searchToggle.contains(e.target) && 
-                e.target !== searchToggle) {
-                
-                searchBar.classList.remove('active');
-                if (searchToggle) {
-                    searchToggle.classList.remove('active');
-                }
-                
-                // 如果搜索框有内容，保留内容但不关闭键盘
-                if (mobileSearchInput && mobileSearchInput.value.trim()) {
-                    // 不执行搜索，只关闭搜索栏
-                }
-            }
-        }
-    });
-},
-
-// 在MobileManager的init方法中调用
-init: function() {
-    console.log('MobileManager.init() 开始');
-    
-    // 只有移动端才执行
-    if (!this.isMobile()) return;
-    
-    try {
-        this.bindMobileEvents();
-        this.initMobileSearch(); // 添加这一行
-        this.adjustMobileLayout();
-        console.log('MobileManager.init() 完成');
-    } catch (error) {
-        console.error('移动端初始化失败:', error);
-    }
-},
-// ==================== 移动端搜索功能修复 ====================
-
-// 绑定移动端搜索事件
-function bindMobileSearchEvents() {
-    console.log('绑定移动端搜索事件');
-    
-    // 移动端搜索按钮
-    const searchToggle = document.getElementById('mobile-search-toggle');
-    const searchBar = document.getElementById('mobile-search-bar');
-    
-    if (searchToggle && searchBar) {
-        searchToggle.addEventListener('click', function(e) {
-            e.preventDefault();
-            e.stopPropagation();
-            
-            console.log('移动端搜索按钮点击');
-            
-            // 切换搜索栏显示
-            searchBar.classList.toggle('active');
-            searchToggle.classList.toggle('active');
-            
-            // 如果打开搜索栏，聚焦输入框
-            if (searchBar.classList.contains('active')) {
-                setTimeout(() => {
-                    const searchInput = document.getElementById('mobile-search-input');
-                    if (searchInput) {
-                        searchInput.focus();
-                        searchInput.value = ''; // 清空输入框
-                    }
-                }, 100);
-            } else {
-                // 如果关闭搜索栏，清空搜索并恢复视图
-                const searchInput = document.getElementById('mobile-search-input');
-                if (searchInput) {
-                    searchInput.value = '';
-                }
-                // 恢复之前的视图
-                if (App && App.currentView) {
-                    App.loadView(App.currentView);
-                }
-            }
-        });
-    }
-    
-    // 移动端搜索输入框
-    const mobileSearchInput = document.getElementById('mobile-search-input');
-    if (mobileSearchInput) {
-        // 输入事件
-        mobileSearchInput.addEventListener('input', function(e) {
-            const query = e.target.value.trim();
-            console.log('移动端搜索输入:', query);
-            
-            if (query.length >= 2) { // 至少2个字符才开始搜索
-                if (App && App.performSearch) {
-                    App.performSearch(query);
-                }
-            } else if (query.length === 0) {
-                // 清空搜索，恢复视图
-                if (App && App.currentView) {
-                    App.loadView(App.currentView);
-                }
-            }
-        });
-        
-        // 回车键搜索
-        mobileSearchInput.addEventListener('keypress', function(e) {
-            if (e.key === 'Enter') {
-                e.preventDefault();
-                console.log('移动端搜索回车');
-                const query = e.target.value.trim();
-                if (App && App.performSearch) {
-                    App.performSearch(query);
-                }
-                // 隐藏搜索栏
-                const searchBar = document.getElementById('mobile-search-bar');
-                if (searchBar) {
-                    searchBar.classList.remove('active');
-                }
-                if (searchToggle) {
-                    searchToggle.classList.remove('active');
-                }
-            }
-        });
-    }
-    
-    // 移动端搜索清除按钮
-    const searchClear = document.getElementById('mobile-search-clear');
-    if (searchClear && mobileSearchInput) {
-        searchClear.addEventListener('click', function() {
-            mobileSearchInput.value = '';
-            mobileSearchInput.focus();
-            console.log('移动端搜索清除按钮点击');
-            // 恢复视图
-            if (App && App.currentView) {
-                App.loadView(App.currentView);
-            }
-        });
-    }
-}
-
-// 在DOM加载完成后绑定事件
-document.addEventListener('DOMContentLoaded', function() {
-    console.log('mobile.js: DOM加载完成');
-    
-    // 延迟绑定，确保App已加载
-    setTimeout(() => {
-        bindMobileSearchEvents();
-    }, 500);
 });
