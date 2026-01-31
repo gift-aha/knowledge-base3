@@ -2787,3 +2787,21 @@ deleteTimelineItem: function(id) {
         }
     }
 }
+// 在文件末尾添加
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM已加载，开始初始化应用');
+    
+    // 检查是否移动端
+    if (App.isMobile()) {
+        App.initMobile();
+    }
+    
+    // 初始化应用
+    App.init();
+});
+
+// 如果上面的方式不行，尝试更简单的方式
+window.onload = function() {
+    console.log('页面已加载，初始化应用');
+    App.init();
+};
