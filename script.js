@@ -2335,6 +2335,13 @@ const DataManager = {
                         thought.tags = tagsPart.replace(/[：:]\s*/, '').split(/[、，,\s]+/).filter(tag => tag.trim());
                     }
                 }
+                            // 从模型延伸与整合提取新建模型ID
+            if (currentSection === '模型延伸与整合') {
+                const modelIdRegex = /M-\d+/g;
+                const matches = trimmed.match(modelIdRegex);
+                if (matches) {
+                    thought.newModels = [...new Set([...thought.newModels, ...matches])];
+                }
             }
         }
         
@@ -2396,8 +2403,25 @@ const DataManager = {
             this.nextModelId++;
         }
         
-        // 添加到数组开头
-        this.models.unshift(modelData);
+                // 确保relatedModels是数组
+        if (!Array.isArray(modelData.relatedModels)) {
+            modelData.relatedModels = [];
+        }
+        
+        // 检查ID是否已存在
+        const existingIndex = this.models.findIndex(m => m.id === modelData.id);
+        if (existingIndex >= 0) {
+            // 更新现有模型
+            this.models[existingIndex] = {
+                ...this.models[existingIndex],
+                ...modelData
+            };
+            console.log(`更新模型: ${modelData.id}`);
+        } else {
+            // 添加到数组开头
+            this.models.unshift(modelData);
+            console.log(`添加新模型: ${modelData.id}`);
+        }
         
         // 更新标签
         if (modelData.tags && Array.isArray(modelData.tags)) {
