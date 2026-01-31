@@ -1078,7 +1078,86 @@ const App = {
     
     filterByTag: function(tag) {
         this.showMessage(`过滤标签: ${tag}`, 'info'); 
+        // 切换到思考列表视图并筛选
+        this.loadView('thoughts');
+        
+        // 保存筛选状态
+        setTimeout(() => {
+            // 高亮显示筛选的标签
+            const tagElements = document.querySelectorAll('.tag');
+            tagElements.forEach(el => {
+                if (el.textContent === tag) {
+                    el.style.backgroundColor = 'var(--accent-color)';
+                    el.style.color = 'white';
+                }
+            });
+            
+            // 筛选思考记录
+            const filteredThoughts = DataManager.thoughts.filter(thought => 
+                thought.tags && thought.tags.includes(tag)
+            );
+            
+            // 筛选模型
+            const filteredModels = DataManager.models.filter(model => 
+                model.tags && model.tags.includes(tag)
+            );
+            
+            // 如果结果不多，直接显示
+            if (filteredThoughts.length + filteredModels.length <= 10) {
+                this.renderTagSearchResults(tag, filteredThoughts, filteredModels);
+            } else {
+                this.showMessage(`找到 ${filteredThoughts.length} 条思考记录和 ${filteredModels.length} 个模型使用标签 "${tag}"`, 'info');
+            }
+        }, 100);
     },
+    
+    renderTagSearchResults: function(tag, thoughts, models) {
+        let html = `
+            <div class="content-header">
+                <h2>标签搜索结果</h2>
+                <p>标签: <span class="tag">${tag}</span> | 共 ${thoughts.length + models.length} 个结果</p>
+                <button class="btn btn-secondary" onclick="App.loadView('keywords')" style="margin-top: 10px;">
+                    <i class="fas fa-arrow-left"></i> 返回标签页面
+                </button>
+            </div>
+        `;
+        
+        if (thoughts.length > 0) {
+            html += `<h3>思考记录 (${thoughts.length})</h3>`;
+            html += '<div class="records-list">';
+            thoughts.forEach(thought => {
+                html += `
+                    <div class="record-card" onclick="App.showThoughtDetail('${thought.id}')">
+                        <div class="record-id">${thought.id}</div>
+                        <div class="record-title">${thought.title || '无标题'}</div>
+                        <div class="record-tags">
+                            ${thought.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+        }
+        
+        if (models.length > 0) {
+            html += `<h3>思维模型 (${models.length})</h3>`;
+            html += '<div class="models-list">';
+            models.forEach(model => {
+                html += `
+                    <div class="model-card" onclick="App.showModelDetail('${model.id}')">
+                        <div class="model-id">${model.id}</div>
+                        <div class="model-name">${model.name}</div>
+                        <div class="model-tags">
+                            ${model.tags.map(t => `<span class="tag">${t}</span>`).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            html += '</div>';
+        }
+        
+        document.getElementById('content-area').innerHTML = html;
+    }
     
     performSearch: function(query) {
         if (!query.trim()) {
