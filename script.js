@@ -24,13 +24,7 @@ const App = {
         setTimeout(() => {
             const loading = document.getElementById('loading');
             if (loading) loading.style.display = 'none';
-        }, 300);
-        
-        // 5. 如果是移动端，初始化移动端功能
-        if (this.isMobile()) {
-            this.initMobile();
-        }
-        
+        }, 300);                     
         console.log('App.init() 完成');
     },
     
