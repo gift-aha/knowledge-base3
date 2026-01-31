@@ -2890,3 +2890,8 @@ saveModel: function() {
     if (descInput) descInput.value = '';
     if (relatedModelsInput) relatedModelsInput.value = '';
 }
+// 在文件末尾添加
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM 加载完成，开始初始化应用');
+    App.init();
+});
