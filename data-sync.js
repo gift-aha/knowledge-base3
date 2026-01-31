@@ -130,3 +130,67 @@ const GitHubDataSync = {
 if (typeof window !== 'undefined') {
     window.GitHubDataSync = GitHubDataSync;
 }
+// 移动端数据加载策略
+if (App.isMobile()) {
+    console.log('移动端模式：尝试从data.json加载数据');
+    
+    // 尝试从data.json加载
+    fetch('./data.json')
+        .then(response => {
+            if (!response.ok) throw new Error('data.json文件不存在');
+            return response.json();
+        })
+        .then(data => {
+            console.log('从data.json加载数据成功');
+            
+            // 导入数据
+            if (data.thoughts && data.models) {
+                DataManager.thoughts = data.thoughts;
+                DataManager.models = data.models;
+                DataManager.tags = data.tags || {};
+                DataManager.currentVersion = data.currentVersion || DataManager.currentVersion;
+                DataManager.timeline = data.timeline || DataManager.timeline;
+                
+                // 禁用保存功能
+                DataManager.save = function() {
+                    console.log('移动端：保存功能已禁用');
+                    return false;
+                };
+                
+                // 禁用添加/编辑功能
+                const originalAddThought = DataManager.addStructuredThought;
+                DataManager.addStructuredThought = function() {
+                    App.showMessage('移动端：添加功能已禁用', 'warning');
+                    return null;
+                };
+                
+                const originalAddModel = DataManager.addModel;
+                DataManager.addModel = function() {
+                    App.showMessage('移动端：添加模型功能已禁用', 'warning');
+                    return null;
+                };
+                
+                // 显示移动端提示
+                setTimeout(() => {
+                    App.showMessage('移动端只读模式：数据从data.json加载', 'info');
+                    
+                    // 添加移动端只读样式
+                    document.body.classList.add('mobile-readonly-mode');
+                    
+                    // 隐藏编辑按钮
+                    const editButtons = document.querySelectorAll('.btn[onclick*="edit"], .btn[onclick*="save"], .btn[onclick*="delete"]');
+                    editButtons.forEach(btn => {
+                        btn.style.display = 'none';
+                    });
+                }, 1000);
+            }
+        })
+        .catch(error => {
+            console.log('从data.json加载失败，使用本地存储：', error);
+            // 如果data.json不存在，使用本地存储
+            DataManager.init();
+        });
+} else {
+    // 电脑端：使用本地存储
+    DataManager.init();
+}
