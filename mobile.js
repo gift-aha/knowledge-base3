@@ -287,3 +287,112 @@ init: function() {
         console.error('移动端初始化失败:', error);
     }
 },
+// ==================== 移动端搜索功能修复 ====================
+
+// 绑定移动端搜索事件
+function bindMobileSearchEvents() {
+    console.log('绑定移动端搜索事件');
+    
+    // 移动端搜索按钮
+    const searchToggle = document.getElementById('mobile-search-toggle');
+    const searchBar = document.getElementById('mobile-search-bar');
+    
+    if (searchToggle && searchBar) {
+        searchToggle.addEventListener('click', function(e) {
+            e.preventDefault();
+            e.stopPropagation();
+            
+            console.log('移动端搜索按钮点击');
+            
+            // 切换搜索栏显示
+            searchBar.classList.toggle('active');
+            searchToggle.classList.toggle('active');
+            
+            // 如果打开搜索栏，聚焦输入框
+            if (searchBar.classList.contains('active')) {
+                setTimeout(() => {
+                    const searchInput = document.getElementById('mobile-search-input');
+                    if (searchInput) {
+                        searchInput.focus();
+                        searchInput.value = ''; // 清空输入框
+                    }
+                }, 100);
+            } else {
+                // 如果关闭搜索栏，清空搜索并恢复视图
+                const searchInput = document.getElementById('mobile-search-input');
+                if (searchInput) {
+                    searchInput.value = '';
+                }
+                // 恢复之前的视图
+                if (App && App.currentView) {
+                    App.loadView(App.currentView);
+                }
+            }
+        });
+    }
+    
+    // 移动端搜索输入框
+    const mobileSearchInput = document.getElementById('mobile-search-input');
+    if (mobileSearchInput) {
+        // 输入事件
+        mobileSearchInput.addEventListener('input', function(e) {
+            const query = e.target.value.trim();
+            console.log('移动端搜索输入:', query);
+            
+            if (query.length >= 2) { // 至少2个字符才开始搜索
+                if (App && App.performSearch) {
+                    App.performSearch(query);
+                }
+            } else if (query.length === 0) {
+                // 清空搜索，恢复视图
+                if (App && App.currentView) {
+                    App.loadView(App.currentView);
+                }
+            }
+        });
+        
+        // 回车键搜索
+        mobileSearchInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                console.log('移动端搜索回车');
+                const query = e.target.value.trim();
+                if (App && App.performSearch) {
+                    App.performSearch(query);
+                }
+                // 隐藏搜索栏
+                const searchBar = document.getElementById('mobile-search-bar');
+                if (searchBar) {
+                    searchBar.classList.remove('active');
+                }
+                if (searchToggle) {
+                    searchToggle.classList.remove('active');
+                }
+            }
+        });
+    }
+    
+    // 移动端搜索清除按钮
+    const searchClear = document.getElementById('mobile-search-clear');
+    if (searchClear && mobileSearchInput) {
+        searchClear.addEventListener('click', function() {
+            mobileSearchInput.value = '';
+            mobileSearchInput.focus();
+            console.log('移动端搜索清除按钮点击');
+            // 恢复视图
+            if (App && App.currentView) {
+                App.loadView(App.currentView);
+            }
+        });
+    }
+}
+
+// 在DOM加载完成后绑定事件
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('mobile.js: DOM加载完成');
+    
+    // 延迟绑定，确保App已加载
+    setTimeout(() => {
+        bindMobileSearchEvents();
+    }, 500);
+});
