@@ -2245,3 +2245,52 @@ input[type="text"] {
     color: var(--text-light);
     line-height: 1.4;
 }
+/* 修复标签空白问题 */
+.record-tags, .model-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 4px; /* 减少间距 */
+    margin-top: 8px; /* 减少上边距 */
+    margin-bottom: 8px; /* 添加下边距，避免与日期重叠 */
+    min-height: 24px; /* 最小高度 */
+    align-items: center;
+}
+
+.tag {
+    display: inline-block;
+    padding: 3px 8px; /* 减少内边距 */
+    background-color: rgba(92, 107, 192, 0.1);
+    color: var(--accent-color);
+    border-radius: 3px; /* 减小圆角 */
+    font-size: 0.8rem; /* 减小字体 */
+    margin: 1px; /* 减少外边距 */
+    line-height: 1.2;
+    cursor: pointer;
+    transition: all 0.2s;
+    border: 1px solid rgba(92, 107, 192, 0.2);
+    max-width: 150px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.tag:hover {
+    background-color: rgba(92, 107, 192, 0.2);
+    transform: translateY(-1px);
+}
+
+/* 修复记录卡片中的间距 */
+.record-card, .model-card {
+    padding: 15px; /* 减小内边距 */
+}
+
+.record-desc, .model-desc {
+    margin-bottom: 8px; /* 减少下边距 */
+    min-height: 40px; /* 最小高度避免折叠 */
+}
+
+.record-date, .model-date {
+    font-size: 0.85rem;
+    color: var(--text-light);
+    margin-top: 4px; /* 减小上边距 */
+}
