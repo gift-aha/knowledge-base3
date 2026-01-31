@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>诊断工具</title>
+</head>
+<body>
+    <h1>脚本加载诊断</h1>
+    <div id="result"></div>
+    
+    <script>
+        function diagnoseScriptLoading() {
+            const result = document.getElementById('result');
+            let html = '<h3>诊断结果：</h3>';
+            
+            // 检查是否已有script标签
+            const scripts = Array.from(document.getElementsByTagName('script'));
+            const scriptJs = scripts.find(s => s.src && s.src.includes('script.js'));
+            
+            if (scriptJs) {
+                html += `<p>✅ 找到script.js标签: ${scriptJs.src}</p>`;
+                
+                // 测试该路径
+                const testScript = document.createElement('script');
+                testScript.src = scriptJs.src;
+                
+                testScript.onload = function() {
+                    html += `<p>✅ 路径可访问</p>`;
+                    html += `<p>App对象: ${typeof App}</p>`;
+                    html += `<p>DataManager对象: ${typeof DataManager}</p>`;
+                    result.innerHTML = html;
+                };
+                
+                testScript.onerror = function() {
+                    html += `<p>❌ 路径不可访问 (404或其他错误)</p>`;
+                    html += `<p>尝试的路径: ${scriptJs.src}</p>`;
+                    result.innerHTML = html;
+                };
+                
+                document.head.appendChild(testScript);
+            } else {
+                html += '<p>❌ 未找到script.js标签</p>';
+                result.innerHTML = html;
+            }
+        }
+        
+        // 运行诊断
+        diagnoseScriptLoading();
+    </script>
+</body>
+</html>
