@@ -37,25 +37,6 @@ const App = {
             this.showErrorMessage(error);
         }
     },
-
-    showErrorMessage: function(error) {
-        const contentArea = document.getElementById('content-area');
-        if (contentArea) {
-            contentArea.innerHTML = `
-                <div class="error-state">
-                    <i class="fas fa-exclamation-triangle"></i>
-                    <h3>应用初始化失败</h3>
-                    <p>错误信息: ${error.message}</p>
-                    <div style="text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
-                        <strong>调试信息:</strong>
-                        <pre style="font-size: 12px; white-space: pre-wrap;">${error.stack}</pre>
-                    </div>
-                    <button onclick="location.reload()" class="btn btn-primary">刷新页面</button>
-                </div>
-            `;
-        }
-    }
-    
     // 初始化移动端
     initMobile: function() {
         console.log('初始化移动端功能');
@@ -73,7 +54,25 @@ const App = {
             contentArea.style.paddingTop = '80px';
             contentArea.style.paddingBottom = '80px';
         }
-    },
+    }
+    
+    showErrorMessage: function(error) {
+        const contentArea = document.getElementById('content-area');
+        if (contentArea) {
+            contentArea.innerHTML = `
+                <div class="error-state">
+                    <i class="fas fa-exclamation-triangle"></i>
+                    <h3>应用初始化失败</h3>
+                    <p>错误信息: ${error.message}</p>
+                    <div style="text-align: left; background: #f8f9fa; padding: 15px; border-radius: 8px; margin: 15px 0;">
+                        <strong>调试信息:</strong>
+                        <pre style="font-size: 12px; white-space: pre-wrap;">${error.stack}</pre>
+                    </div>
+                    <button onclick="location.reload()" class="btn btn-primary">刷新页面</button>
+                </div>
+            `;
+        }
+    }
     
     // 绑定所有事件
     bindEvents: function() {
