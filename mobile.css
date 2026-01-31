@@ -1024,9 +1024,144 @@ html {
     display: none !important;
 }
 
-/* 移动端只读模式样式 */
+/* ==================== 移动端专属样式 ==================== */
+
+/* 移动端只读模式 */
 .mobile-readonly-mode .btn[onclick*="save"],
 .mobile-readonly-mode .btn[onclick*="edit"],
-.mobile-readonly-mode .btn[onclick*="delete"] {
+.mobile-readonly-mode .btn[onclick*="delete"],
+.mobile-readonly-mode .action-icon,
+.mobile-readonly-mode .card-actions,
+.mobile-readonly-mode .btn-warning,
+.mobile-readonly-mode .btn-danger {
     display: none !important;
+}
+
+.mobile-readonly-mode input:disabled,
+.mobile-readonly-mode textarea:disabled {
+    background-color: #f5f5f5 !important;
+    cursor: not-allowed !important;
+}
+/* 移动端数据提示 */
+.mobile-data-notice {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 15px;
+    border-radius: 8px;
+    margin: 15px;
+    text-align: center;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobile-data-notice i {
+    font-size: 24px;
+    margin-bottom: 10px;
+    display: block;
+}
+
+.mobile-data-notice h4 {
+    margin: 0 0 8px 0;
+    font-size: 1.1rem;
+}
+
+.mobile-data-notice p {
+    margin: 5px 0;
+    font-size: 0.9rem;
+    opacity: 0.9;
+}
+
+.mobile-data-notice small {
+    font-size: 0.8rem;
+    opacity: 0.8;
+}
+/* 移动端分段编辑优化 */
+.mobile-mode .segments-container {
+    gap: 15px;
+}
+
+.mobile-mode .segment-editor {
+    padding: 12px;
+}
+
+.mobile-mode .segment-textarea {
+    min-height: 120px;
+    font-size: 16px; /* 防止iOS缩放 */
+}
+
+/* 移动端时间线优化 */
+.mobile-mode .timeline-container {
+    padding-left: 15px;
+}
+
+.mobile-mode .timeline-dot {
+    left: 8px;
+    width: 10px;
+    height: 10px;
+}
+
+.mobile-mode .timeline-item {
+    padding-left: 35px;
+    margin-bottom: 20px;
+}
+
+/* 移动端标签复核优化 */
+.mobile-mode .tag-grid {
+    grid-template-columns: 1fr;
+}
+
+.mobile-mode .tag-review-card {
+    padding: 12px;
+}
+
+/* 移动端网络图容器 */
+.mobile-mode .network-graph-container {
+    min-height: 300px;
+}
+
+/* 移动端搜索优化 */
+.mobile-search-bar.active {
+    z-index: 1001;
+}
+
+/* 移动端模态框优化 */
+.mobile-mode .modal {
+    max-width: 95%;
+    margin: 10px;
+    padding: 20px;
+}
+
+/* 移动端底部导航安全区域 */
+@supports (padding: max(0px)) {
+    .mobile-bottom-nav {
+        padding-bottom: max(15px, env(safe-area-inset-bottom));
+    }
+}
+
+/* 横屏优化 */
+@media (orientation: landscape) and (max-height: 500px) {
+    .mobile-header {
+        height: 50px;
+    }
+    
+    .mobile-bottom-nav {
+        height: 50px;
+    }
+    
+    .content-area {
+        padding-bottom: 60px;
+    }
+}
+
+/* 深色模式支持 */
+@media (prefers-color-scheme: dark) {
+    .mobile-data-notice {
+        background: linear-gradient(135deg, #434343 0%, #2c2c2c 100%);
+    }
+}
+
+/* 高对比度模式 */
+@media (prefers-contrast: high) {
+    .mobile-data-notice {
+        border: 2px solid white;
+    }
 }
