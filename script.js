@@ -724,16 +724,50 @@ const App = {
     },
     
     renderNetworkAnalysis: function() {
-        document.getElementById('content-area').innerHTML = `
+        const models = DataManager.models;
+        
+        let html = `
             <div class="content-header">
                 <h2>模型关联网络分析</h2>
-                <p>系统版本: ${DataManager.currentVersion}</p>
+                <p>系统版本: ${DataManager.currentVersion} | 共 ${models.length} 个思维模型</p>
             </div>
-            <div class="empty-state">
-                <i class="fas fa-project-diagram"></i>
-                <p>关联网络分析功能</p>
+            
+            <div class="network-graph-container">
+                <div style="text-align: center; padding: 20px; color: var(--text-light);" id="network-graph">
+                    <i class="fas fa-project-diagram" style="font-size: 48px; margin-bottom: 15px;"></i>
+                    <p>模型关联网络可视化</p>
+                    <p><small>点击下方模型查看关联关系</small></p>
+                </div>
+            </div>
+            
+            <div class="model-index-section">
+                <h3><i class="fas fa-list"></i> 模型索引</h3>
+                <p>点击模型查看详细信息</p>
+                
+                <div class="model-index-grid">
+        `;
+        
+        models.forEach(model => {
+            html += `
+                <div class="model-index-item" onclick="App.showModelDetail('${model.id}')">
+                    <div class="model-index-name">${model.name}</div>
+                    <div class="model-index-desc">${model.description.substring(0, 80)}...</div>
+                    <div style="margin-top: 8px;">
+                        ${model.tags ? model.tags.slice(0, 2).map(tag => `<span class="tag">${tag}</span>`).join(' ') : ''}
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
             </div>
         `;
+        
+        document.getElementById('content-area').innerHTML = html;
+        
+        // 简单的网络图实现
+        this.renderSimpleNetwork();
     },
     
     renderTimeline: function() {
@@ -1865,6 +1899,118 @@ editThoughtSegments: function(id) {
         }
     });
 },
+
+//在App对象中添加简单的网络图实现
+renderSimpleNetwork: function() {
+    const models = DataManager.models;
+    if (models.length === 0) return;
+    
+    const container = document.getElementById('network-graph');
+    if (!container) return;
+    
+    // 清空容器
+    container.innerHTML = '';
+    
+    // 创建canvas
+    const canvas = document.createElement('canvas');
+    canvas.width = 600;
+    canvas.height = 400;
+    canvas.style.width = '100%';
+    canvas.style.height = '400px';
+    canvas.style.maxWidth = '600px';
+    canvas.style.margin = '0 auto';
+    canvas.style.display = 'block';
+    canvas.style.background = '#f8f9fa';
+    canvas.style.borderRadius = '8px';
+    container.appendChild(canvas);
+    
+    const ctx = canvas.getContext('2d');
+    
+    // 简单的网络布局
+    const centerX = canvas.width / 2;
+    const centerY = canvas.height / 2;
+    const radius = Math.min(centerX, centerY) - 60;
+    
+    // 绘制连线
+    ctx.strokeStyle = 'rgba(92, 107, 192, 0.3)';
+    ctx.lineWidth = 1;
+    
+    for (let i = 0; i < models.length; i++) {
+        const angle1 = (i * 2 * Math.PI) / models.length;
+        const x1 = centerX + radius * Math.cos(angle1);
+        const y1 = centerY + radius * Math.sin(angle1);
+        
+        for (let j = i + 1; j < models.length; j++) {
+            // 根据标签相似度决定是否连线
+            const model1 = models[i];
+            const model2 = models[j];
+            const commonTags = model1.tags?.filter(tag => 
+                model2.tags?.includes(tag)
+            ) || [];
+            
+            if (commonTags.length > 0) {
+                const angle2 = (j * 2 * Math.PI) / models.length;
+                const x2 = centerX + radius * Math.cos(angle2);
+                const y2 = centerY + radius * Math.sin(angle2);
+                
+                ctx.beginPath();
+                ctx.moveTo(x1, y1);
+                ctx.lineTo(x2, y2);
+                ctx.stroke();
+            }
+        }
+    }
+    
+    // 绘制节点
+    models.forEach((model, i) => {
+        const angle = (i * 2 * Math.PI) / models.length;
+        const x = centerX + radius * Math.cos(angle);
+        const y = centerY + radius * Math.sin(angle);
+        
+        // 绘制节点
+        ctx.fillStyle = i === 0 ? '#1a237e' : '#5c6bc0';
+        ctx.beginPath();
+        ctx.arc(x, y, 20, 0, Math.PI * 2);
+        ctx.fill();
+        
+        // 节点文字
+        ctx.fillStyle = 'white';
+        ctx.font = 'bold 12px Arial';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(model.id, x, y);
+        
+        // 节点交互
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const clickX = e.clientX - rect.left;
+            const clickY = e.clientY - rect.top;
+            
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const scaledX = clickX * scaleX;
+            const scaledY = clickY * scaleY;
+            
+            const distance = Math.sqrt(
+                Math.pow(scaledX - x, 2) + Math.pow(scaledY - y, 2)
+            );
+            
+            if (distance <= 20) {
+                App.showModelDetail(model.id);
+            }
+        });
+    });
+    
+    // 添加提示
+    const info = document.createElement('div');
+    info.innerHTML = `
+        <div style="text-align: center; margin-top: 15px; color: var(--text-light); font-size: 0.9rem;">
+            <i class="fas fa-mouse-pointer"></i> 点击节点查看模型详情 | 
+            <i class="fas fa-link"></i> 连线表示标签关联
+        </div>
+    `;
+    container.appendChild(info);
+}
 
 saveThoughtSegments: function(thoughtId) {
     const thought = DataManager.getThoughtById(thoughtId);
