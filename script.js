@@ -1031,17 +1031,41 @@ const App = {
                 </div>
         `;
         
+        // 修复：添加来源思考点击功能
         if (model.fromThought) {
             html += `
                 <div class="detail-section">
                     <h4><i class="fas fa-link"></i> 来源思考</h4>
                     <div class="detail-section-content">
-                        <p>此模型来源于思考记录: <span style="color: var(--accent-color); font-weight: 500;">${model.fromThought}</span></p>
+                        <p>此模型来源于思考记录: 
+                            <span style="color: var(--accent-color); font-weight: 500; cursor: pointer; text-decoration: underline;" 
+                                  onclick="App.showThoughtDetail('${model.fromThought.replace('#', '')}')">
+                                ${model.fromThought}
+                            </span>
+                        </p>
                     </div>
                 </div>
             `;
         }
-        
+
+                // 修复：显示关联模型
+        if (model.relatedModels && model.relatedModels.length > 0) {
+            html += `
+                <div class="detail-section">
+                    <h4><i class="fas fa-project-diagram"></i> 关联模型</h4>
+                    <div class="detail-section-content">
+                        <div class="related-models-list">
+                            ${model.relatedModels.map(relatedId => {
+                                const relatedModel = DataManager.getModelById(relatedId);
+                                return relatedModel ? 
+                                    `<span class="tag" style="cursor: pointer; background: #e8f5e8; color: #2e7d32;" onclick="App.showModelDetail('${relatedId}')">${relatedId}: ${relatedModel.name}</span>` :
+                                    `<span class="tag" style="background: #f5f5f5; color: #757575;">${relatedId}</span>`;
+                            }).join(' ')}
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
         html += `</div>`;
         document.getElementById('content-area').innerHTML = html;
     },
