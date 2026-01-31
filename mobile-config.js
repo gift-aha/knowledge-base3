@@ -17,7 +17,7 @@ const MobileConfig = {
     ],
     
     init: function() {
-        if (!App.isMobile()) return;
+        if (!this.isMobile()) return;
         
         console.log('移动端配置初始化');
         
@@ -31,6 +31,10 @@ const MobileConfig = {
         this.disableEditFunctions();
     },
     
+    isMobile: function() {
+        return window.innerWidth <= 768 || /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+    },
+    
     hideMenuItems: function() {
         // 桌面端导航隐藏
         document.querySelectorAll('.nav-links a').forEach(link => {
@@ -42,6 +46,14 @@ const MobileConfig = {
         
         // 移动端导航隐藏
         document.querySelectorAll('.mobile-nav-item').forEach(item => {
+            const view = item.getAttribute('data-view');
+            if (this.hiddenMenuItems.includes(view)) {
+                item.style.display = 'none';
+            }
+        });
+        
+        // 移动端视图切换器隐藏
+        document.querySelectorAll('.mobile-view-option').forEach(item => {
             const view = item.getAttribute('data-view');
             if (this.hiddenMenuItems.includes(view)) {
                 item.style.display = 'none';
@@ -79,7 +91,7 @@ const MobileConfig = {
             originalLoadView.call(this, view);
             
             setTimeout(() => {
-                if (this.readonlyPages.includes(view)) {
+                if (MobileConfig.readonlyPages.includes(view)) {
                     // 隐藏所有操作按钮
                     document.querySelectorAll('.btn-group, .action-buttons').forEach(group => {
                         group.style.display = 'none';
@@ -87,12 +99,13 @@ const MobileConfig = {
                 }
             }, 100);
         };
+        
+        // 在页面添加移动端只读样式
+        document.body.classList.add('mobile-readonly-mode');
     }
 };
 
 // 在应用初始化时调用
 document.addEventListener('DOMContentLoaded', function() {
-    if (App.isMobile()) {
-        MobileConfig.init();
-    }
+    MobileConfig.init();
 });
