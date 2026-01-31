@@ -1129,6 +1129,67 @@ const App = {
             this.showMessage('已加载模型内容，可编辑后保存', 'info');
         }, 300);
     },
+
+    // 添加自动提取按钮
+    addAutoExtractButton: function(modelId) {
+        const model = DataManager.getModelById(modelId);
+        if (!model || !model.fromThought) return;
+        
+        const inputSection = document.querySelector('.input-section');
+        if (!inputSection) return;
+        
+        // 创建自动提取按钮
+        const extractButton = document.createElement('button');
+        extractButton.className = 'btn btn-warning model-description-extract-btn';
+        extractButton.innerHTML = '<i class="fas fa-magic"></i> 从来源思考自动提取';
+        extractButton.style.marginBottom = '10px';
+        extractButton.onclick = () => this.autoExtractFromThought(modelId);
+        
+        const descriptionContainer = document.getElementById('model-description')?.parentNode;
+        if (descriptionContainer) {
+            descriptionContainer.parentNode.insertBefore(extractButton, descriptionContainer);
+        }
+    },
+    // 从来源思考自动提取信息
+    autoExtractFromThought: function(modelId) {
+        const model = DataManager.getModelById(modelId);
+        if (!model || !model.fromThought) {
+            this.showMessage('未找到来源思考记录', 'warning');
+            return;
+        }
+        
+        const thought = DataManager.getThoughtById(model.fromThought.replace('#', ''));
+        if (!thought) {
+            this.showMessage('未找到对应的思考记录', 'warning');
+            return;
+        }
+        
+        // 提取关联模型
+        const relatedModels = this.extractRelatedModels(thought);
+        
+        // 提取模型描述
+        const modelDescription = this.extractModelDescription(thought);
+        
+        // 更新表单
+        const descInput = document.getElementById('model-description');
+        if (descInput && modelDescription) {
+            descInput.value = modelDescription;
+        }
+        
+        // 显示提取结果
+        let message = '已从思考记录提取信息';
+        if (relatedModels.length > 0) {
+            message += `，找到关联模型：${relatedModels.join(', ')}`;
+        }
+        if (modelDescription) {
+            message += '，已更新模型描述';
+        }
+        
+        this.showMessage(message, 'success');
+        
+        // 这里可以添加逻辑来更新模型的relatedModels
+        // 但由于UI中没有相关输入框，暂时只更新描述
+    },
     
     filterByTag: function(tag) {
         // 切换到思考列表视图并筛选
