@@ -190,6 +190,7 @@ initMobileSearch: function() {
             }
         });
     }
+}    
     
     // 搜索清除按钮
     const searchClear = document.getElementById('mobile-search-clear');
