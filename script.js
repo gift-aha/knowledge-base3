@@ -880,15 +880,18 @@ const App = {
                         <div class="detail-title">${thought.title || '无标题'}</div>
                         <div class="detail-id">${thought.id}</div>
                         <div style="margin-top: 10px;">
-                            ${thought.tags ? thought.tags.map(tag => `<span class="tag">${tag}</span>`).join(' ') : ''}
+                            ${thought.tags ? thought.tags.map(tag => `<span class="tag" onclick="App.filterByTag('${tag}')" style="cursor: pointer;">${tag}</span>`).join(' ') : ''}
                         </div>
                     </div>
                     <div style="color: var(--text-light); font-size: 0.9rem;">${thought.date}</div>
                 </div>
                 
                 <div class="action-buttons">
+                    <button class="btn btn-primary" onclick="App.editThoughtSegments('${thought.id}')">
+                        <i class="fas fa-edit"></i> 分段编辑
+                    </button>
                     <button class="btn btn-warning" onclick="App.editThought('${thought.id}')">
-                        <i class="fas fa-edit"></i> 编辑
+                        <i class="fas fa-pen"></i> 完整编辑
                     </button>
                     <button class="btn btn-danger" onclick="App.openDeleteModal('thought', '${thought.id}')">
                         <i class="fas fa-trash"></i> 删除
@@ -1074,8 +1077,7 @@ const App = {
     },
     
     filterByTag: function(tag) {
-        this.showMessage(`过滤标签: ${tag}`, 'info');
-        // 实际过滤功能可以在这里实现
+        this.showMessage(`过滤标签: ${tag}`, 'info'); 
     },
     
     performSearch: function(query) {
@@ -1706,3 +1708,584 @@ const DataManager = {
 
 // 初始化应用
 console.log('script.js 加载完成');
+// ==================== 分段编辑功能 ====================
+
+// 在App对象中添加分段编辑相关方法
+editThoughtSegments: function(id) {
+    const thought = DataManager.getThoughtById(id);
+    if (!thought) {
+        this.showMessage('未找到思考记录', 'error');
+        return;
+    }
+    
+    let html = `
+        <div class="content-header">
+            <h2>分段编辑思考内容</h2>
+            <p>编辑思考记录: ${thought.id}</p>
+        </div>
+        
+        <div class="detail-view">
+            <div class="detail-header">
+                <div class="detail-title">${thought.title || '无标题'}</div>
+                <div class="detail-id">${thought.id}</div>
+                <div class="action-buttons" style="margin-top: 15px;">
+                    <button class="btn btn-success" onclick="App.saveThoughtSegments('${thought.id}')">
+                        <i class="fas fa-save"></i> 保存所有修改
+                    </button>
+                    <button class="btn btn-secondary" onclick="App.showThoughtDetail('${thought.id}')">
+                        <i class="fas fa-arrow-left"></i> 返回详情
+                    </button>
+                </div>
+            </div>
+            
+            <div class="segments-container">
+    `;
+    
+    // 定义标准分段
+    const segments = [
+        { id: 'status', name: '💎 状态看板', key: '状态看板' },
+        { id: 'conclusion', name: '🌌 核心结论', key: '核心结论' },
+        { id: 'models', name: '🧩 模型延伸与整合', key: '模型延伸与整合' },
+        { id: 'actions', name: '📚 行动/思维要点', key: '行动/思维要点' },
+        { id: 'architecture', name: '📂 架构更新', key: '架构更新' }
+    ];
+    
+    // 为每个分段创建编辑器
+    segments.forEach(segment => {
+        const content = thought.sections && thought.sections[segment.key] ? 
+            thought.sections[segment.key] : '';
+        
+        html += `
+            <div class="segment-editor">
+                <div class="segment-header">
+                    <h4>${segment.name}</h4>
+                    <div class="segment-stats">${content.length} 字符</div>
+                </div>
+                <textarea id="${segment.id}-editor" class="segment-textarea" 
+                          placeholder="输入${segment.name.replace(/[💎🌌🧩📚📂]/g, '').trim()}内容...">${content}</textarea>
+            </div>
+        `;
+    });
+    
+    html += `
+            </div>
+        </div>
+    `;
+    
+    document.getElementById('content-area').innerHTML = html;
+    
+    // 为每个编辑器添加实时字符计数
+    segments.forEach(segment => {
+        const textarea = document.getElementById(`${segment.id}-editor`);
+        if (textarea) {
+            const counter = document.createElement('div');
+            counter.className = 'segment-counter';
+            counter.innerHTML = `${textarea.value.length} 字符`;
+            textarea.parentNode.insertBefore(counter, textarea.nextSibling);
+            
+            textarea.addEventListener('input', function() {
+                counter.innerHTML = `${this.value.length} 字符`;
+            });
+        }
+    });
+},
+
+saveThoughtSegments: function(thoughtId) {
+    const thought = DataManager.getThoughtById(thoughtId);
+    if (!thought) {
+        this.showMessage('未找到思考记录', 'error');
+        return;
+    }
+    
+    // 获取各个分段的内容
+    const segments = [
+        { id: 'status', key: '状态看板' },
+        { id: 'conclusion', key: '核心结论' },
+        { id: 'models', key: '模型延伸与整合' },
+        { id: 'actions', key: '行动/思维要点' },
+        { id: 'architecture', key: '架构更新' }
+    ];
+    
+    let hasChanges = false;
+    
+    // 更新每个分段
+    segments.forEach(segment => {
+        const editor = document.getElementById(`${segment.id}-editor`);
+        if (editor) {
+            const newContent = editor.value.trim();
+            const oldContent = thought.sections && thought.sections[segment.key] ? 
+                thought.sections[segment.key] : '';
+            
+            if (newContent !== oldContent) {
+                if (!thought.sections) thought.sections = {};
+                thought.sections[segment.key] = newContent;
+                hasChanges = true;
+            }
+        }
+    });
+    
+    if (hasChanges) {
+        // 保存到数据管理器
+        DataManager.save();
+        
+        // 从状态看板提取最新信息
+        const statusContent = thought.sections && thought.sections['状态看板'];
+        if (statusContent) {
+            // 提取ID（如果更新了）
+            const idMatch = statusContent.match(/#\d+/);
+            if (idMatch && idMatch[0] !== thought.id) {
+                thought.id = idMatch[0];
+            }
+            
+            // 提取标题
+            const titleMatch = statusContent.match(/思考主题[：:]\s*(.+?)(?:\n|$)/);
+            if (titleMatch) {
+                thought.title = titleMatch[1].trim();
+            }
+        }
+        
+        this.showMessage('分段内容已保存', 'success');
+        
+        // 返回到思考详情
+        setTimeout(() => {
+            this.showThoughtDetail(thoughtId);
+        }, 1000);
+    } else {
+        this.showMessage('没有内容变化', 'info');
+    }
+},
+
+// ==================== 标签复核功能 ====================
+
+renderTagReview: function() {
+    // 收集所有未分类的标签
+    const allTags = DataManager.tags;
+    const categorizedTags = new Set();
+    
+    // 获取所有已分类的标签
+    Object.values(DataManager.tagCategories).forEach(category => {
+        category.forEach(tag => categorizedTags.add(tag));
+    });
+    
+    // 找出未分类的标签
+    const uncategorizedTags = Object.keys(allTags).filter(tag => 
+        !categorizedTags.has(tag) && allTags[tag] > 0
+    ).map(tag => ({
+        tag,
+        count: allTags[tag],
+        items: this.getItemsByTag(tag)
+    })).sort((a, b) => b.count - a.count);
+    
+    // 按类别统计标签
+    const categorized = {};
+    Object.keys(DataManager.tagCategories).forEach(category => {
+        categorized[category] = [];
+        DataManager.tagCategories[category].forEach(tag => {
+            if (allTags[tag] > 0) {
+                categorized[category].push({
+                    tag,
+                    count: allTags[tag]
+                });
+            }
+        });
+        // 按数量排序
+        categorized[category].sort((a, b) => b.count - a.count);
+    });
+    
+    let html = `
+        <div class="content-header">
+            <h2>标签复核中心</h2>
+            <p>系统版本: ${DataManager.currentVersion} | 共 ${Object.keys(allTags).length} 个标签</p>
+        </div>
+        
+        <div class="tag-review-container">
+    `;
+    
+    // 未分类标签
+    if (uncategorizedTags.length > 0) {
+        html += `
+            <div class="tag-review-section">
+                <div class="section-header">
+                    <h3><i class="fas fa-exclamation-circle"></i> 待分类标签 (${uncategorizedTags.length})</h3>
+                    <p>这些标签尚未归类，请为它们选择合适的分类</p>
+                </div>
+                <div class="tag-grid">
+        `;
+        
+        uncategorizedTags.forEach(({ tag, count, items }) => {
+            html += `
+                <div class="tag-review-card">
+                    <div class="tag-review-header">
+                        <span class="tag-badge">${tag}</span>
+                        <span class="tag-count">${count} 次使用</span>
+                    </div>
+                    <div class="tag-actions">
+                        <select class="category-select" id="category-${tag.replace(/\s/g, '-')}" onchange="App.assignTagToCategory('${tag}', this.value)">
+                            <option value="">选择分类...</option>
+            `;
+            
+            Object.keys(DataManager.tagCategories).forEach(category => {
+                html += `<option value="${category}">${category}</option>`;
+            });
+            
+            html += `
+                        </select>
+                        <button class="btn btn-sm btn-danger" onclick="App.deleteTag('${tag}')" title="删除此标签">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                    <div class="tag-preview">
+                        <small>用于：${items.slice(0, 2).map(item => item.title).join('、')}${items.length > 2 ? '等' : ''}</small>
+                    </div>
+                </div>
+            `;
+        });
+        
+        html += `
+                </div>
+            </div>
+        `;
+    }
+    
+    // 已分类标签
+    html += `
+        <div class="tag-review-section">
+            <div class="section-header">
+                <h3><i class="fas fa-check-circle"></i> 已分类标签</h3>
+                <p>按类别管理的标签系统</p>
+            </div>
+    `;
+    
+    Object.keys(categorized).forEach(category => {
+        if (categorized[category].length > 0) {
+            html += `
+                <div class="category-section">
+                    <h4>${category} (${categorized[category].length})</h4>
+                    <div class="tag-list">
+            `;
+            
+            categorized[category].forEach(({ tag, count }) => {
+                html += `
+                    <div class="categorized-tag">
+                        <span class="tag-badge">${tag}</span>
+                        <span class="tag-count">${count}</span>
+                        <button class="btn btn-xs btn-warning" onclick="App.removeTagFromCategory('${tag}')" title="移出此分类">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                `;
+            });
+            
+            html += `
+                    </div>
+                </div>
+            `;
+        }
+    });
+    
+    html += `
+            </div>
+        </div>
+    </div>`;
+    
+    document.getElementById('content-area').innerHTML = html;
+},
+
+// 获取使用某个标签的项目
+getItemsByTag: function(tag) {
+    const items = [];
+    
+    // 从思考记录中查找
+    DataManager.thoughts.forEach(thought => {
+        if (thought.tags && thought.tags.includes(tag)) {
+            items.push({
+                type: '思考记录',
+                id: thought.id,
+                title: thought.title || '无标题'
+            });
+        }
+    });
+    
+    // 从思维模型中查找
+    DataManager.models.forEach(model => {
+        if (model.tags && model.tags.includes(tag)) {
+            items.push({
+                type: '思维模型',
+                id: model.id,
+                title: model.name
+            });
+        }
+    });
+    
+    return items;
+},
+
+// 将标签分配到分类
+assignTagToCategory: function(tag, category) {
+    if (!category) return;
+    
+    // 从其他分类中移除
+    Object.keys(DataManager.tagCategories).forEach(cat => {
+        DataManager.tagCategories[cat] = DataManager.tagCategories[cat].filter(t => t !== tag);
+    });
+    
+    // 添加到新分类
+    if (!DataManager.tagCategories[category].includes(tag)) {
+        DataManager.tagCategories[category].push(tag);
+    }
+    
+    // 保存到本地存储
+    DataManager.save();
+    
+    // 重新渲染标签复核页面
+    this.renderTagReview();
+    
+    this.showMessage(`标签 "${tag}" 已分配到 "${category}"`, 'success');
+},
+
+// 从分类中移除标签
+removeTagFromCategory: function(tag) {
+    let removed = false;
+    
+    Object.keys(DataManager.tagCategories).forEach(category => {
+        const index = DataManager.tagCategories[category].indexOf(tag);
+        if (index > -1) {
+            DataManager.tagCategories[category].splice(index, 1);
+            removed = true;
+        }
+    });
+    
+    if (removed) {
+        DataManager.save();
+        this.renderTagReview();
+        this.showMessage(`标签 "${tag}" 已从分类中移除`, 'success');
+    }
+},
+
+// 删除标签
+deleteTag: function(tag) {
+    if (confirm(`确定要删除标签 "${tag}" 吗？所有使用此标签的记录将被更新。`)) {
+        // 从思考记录中移除
+        DataManager.thoughts.forEach(thought => {
+            if (thought.tags) {
+                thought.tags = thought.tags.filter(t => t !== tag);
+            }
+        });
+        
+        // 从思维模型中移除
+        DataManager.models.forEach(model => {
+            if (model.tags) {
+                model.tags = model.tags.filter(t => t !== tag);
+            }
+        });
+        
+        // 从标签索引中移除
+        delete DataManager.tags[tag];
+        
+        // 从分类中移除
+        this.removeTagFromCategory(tag);
+        
+        // 保存数据
+        DataManager.save();
+        
+        this.showMessage(`标签 "${tag}" 已删除`, 'success');
+    }
+},
+
+// ==================== 时间线编辑功能 ====================
+
+renderTimeline: function() {
+    const timeline = DataManager.timeline;
+    
+    let html = `
+        <div class="content-header">
+            <h2>系统演进历程</h2>
+            <p>系统版本: ${DataManager.currentVersion} | 共 ${timeline.length} 个里程碑</p>
+            <button class="btn btn-primary" onclick="App.showAddTimelineModal()" style="margin-top: 10px;">
+                <i class="fas fa-plus"></i> 添加里程碑
+            </button>
+        </div>
+        
+        <div class="timeline-container">
+    `;
+    
+    // 按日期排序时间线
+    const sortedTimeline = [...timeline].sort((a, b) => {
+        return new Date(b.date) - new Date(a.date);
+    });
+    
+    sortedTimeline.forEach((milestone, index) => {
+        const dateObj = new Date(milestone.date);
+        const year = dateObj.getFullYear();
+        const month = (dateObj.getMonth() + 1).toString().padStart(2, '0');
+        
+        html += `
+            <div class="timeline-item">
+                <div class="timeline-dot"></div>
+                <div class="timeline-content">
+                    <div class="timeline-header">
+                        <div class="timeline-date">${year}年${month}月</div>
+                        <div class="timeline-actions">
+                            <button class="btn btn-xs btn-warning" onclick="App.editTimelineItem('${milestone.id}')">
+                                <i class="fas fa-edit"></i> 编辑
+                            </button>
+                            <button class="btn btn-xs btn-danger" onclick="App.deleteTimelineItem('${milestone.id}')">
+                                <i class="fas fa-trash"></i> 删除
+                            </button>
+                        </div>
+                    </div>
+                    <div class="timeline-version">${milestone.version}</div>
+                    <div class="timeline-event">${milestone.event}</div>
+                </div>
+            </div>
+        `;
+    });
+    
+    html += `
+        </div>
+    `;
+    
+    document.getElementById('content-area').innerHTML = html;
+},
+
+// 显示添加时间线模态框
+showAddTimelineModal: function() {
+    let html = `
+        <div class="modal-overlay" id="timeline-modal" style="display: flex;">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>添加里程碑</h3>
+                    <button class="modal-close" onclick="App.closeModal('timeline-modal')">&times;</button>
+                </div>
+                <div class="modal-content">
+                    <div class="form-group">
+                        <label>版本号</label>
+                        <input type="text" id="timeline-version" placeholder="例如: v22.48">
+                    </div>
+                    <div class="form-group">
+                        <label>日期</label>
+                        <input type="month" id="timeline-date" value="${new Date().toISOString().slice(0, 7)}">
+                    </div>
+                    <div class="form-group">
+                        <label>事件描述</label>
+                        <textarea id="timeline-event" placeholder="描述这个里程碑的内容..." rows="3"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="App.closeModal('timeline-modal')">取消</button>
+                    <button class="btn btn-primary" onclick="App.saveTimelineItem()">保存里程碑</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    // 添加到页面
+    document.body.insertAdjacentHTML('beforeend', html);
+},
+
+// 保存时间线项目
+saveTimelineItem: function() {
+    const version = document.getElementById('timeline-version')?.value.trim();
+    const date = document.getElementById('timeline-date')?.value;
+    const event = document.getElementById('timeline-event')?.value.trim();
+    
+    if (!version || !date || !event) {
+        this.showMessage('请填写所有字段', 'warning');
+        return;
+    }
+    
+    const newItem = {
+        id: `t${Date.now()}`,
+        version,
+        date: `${date}-01`, // 格式化为完整日期
+        event
+    };
+    
+    DataManager.timeline.push(newItem);
+    DataManager.save();
+    
+    this.closeModal('timeline-modal');
+    this.renderTimeline();
+    this.showMessage('里程碑已添加', 'success');
+},
+
+// 编辑时间线项目
+editTimelineItem: function(id) {
+    const item = DataManager.timeline.find(item => item.id === id);
+    if (!item) {
+        this.showMessage('未找到时间线项目', 'error');
+        return;
+    }
+    
+    // 移除年份和月份
+    const date = item.date.slice(0, 7); // 获取 YYYY-MM
+    
+    let html = `
+        <div class="modal-overlay" id="timeline-edit-modal" style="display: flex;">
+            <div class="modal">
+                <div class="modal-header">
+                    <h3>编辑里程碑</h3>
+                    <button class="modal-close" onclick="App.closeModal('timeline-edit-modal')">&times;</button>
+                </div>
+                <div class="modal-content">
+                    <input type="hidden" id="edit-timeline-id" value="${item.id}">
+                    <div class="form-group">
+                        <label>版本号</label>
+                        <input type="text" id="edit-timeline-version" value="${item.version}">
+                    </div>
+                    <div class="form-group">
+                        <label>日期</label>
+                        <input type="month" id="edit-timeline-date" value="${date}">
+                    </div>
+                    <div class="form-group">
+                        <label>事件描述</label>
+                        <textarea id="edit-timeline-event" rows="3">${item.event}</textarea>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-secondary" onclick="App.closeModal('timeline-edit-modal')">取消</button>
+                    <button class="btn btn-primary" onclick="App.updateTimelineItem('${item.id}')">更新里程碑</button>
+                </div>
+            </div>
+        </div>
+    `;
+    
+    document.body.insertAdjacentHTML('beforeend', html);
+},
+
+// 更新时间线项目
+updateTimelineItem: function(id) {
+    const version = document.getElementById('edit-timeline-version')?.value.trim();
+    const date = document.getElementById('edit-timeline-date')?.value;
+    const event = document.getElementById('edit-timeline-event')?.value.trim();
+    
+    if (!version || !date || !event) {
+        this.showMessage('请填写所有字段', 'warning');
+        return;
+    }
+    
+    const item = DataManager.timeline.find(item => item.id === id);
+    if (item) {
+        item.version = version;
+        item.date = `${date}-01`;
+        item.event = event;
+        
+        DataManager.save();
+        this.closeModal('timeline-edit-modal');
+        this.renderTimeline();
+        this.showMessage('里程碑已更新', 'success');
+    }
+},
+
+// 删除时间线项目
+deleteTimelineItem: function(id) {
+    if (confirm('确定要删除这个里程碑吗？')) {
+        const index = DataManager.timeline.findIndex(item => item.id === id);
+        if (index > -1) {
+            DataManager.timeline.splice(index, 1);
+            DataManager.save();
+            this.renderTimeline();
+            this.showMessage('里程碑已删除', 'success');
+        }
+    }
+}
