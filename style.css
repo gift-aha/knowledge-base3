@@ -2245,3 +2245,93 @@ input[type="text"] {
     color: var(--text-light);
     line-height: 1.4;
 }
+/* ==================== 错误状态样式 ==================== */
+.error-state {
+    text-align: center;
+    padding: 40px 20px;
+    max-width: 600px;
+    margin: 50px auto;
+    background: white;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.error-state i {
+    font-size: 64px;
+    color: #f44336;
+    margin-bottom: 20px;
+}
+
+.error-state h3 {
+    color: #333;
+    margin-bottom: 15px;
+    font-size: 24px;
+}
+
+.error-state p {
+    color: #666;
+    margin-bottom: 25px;
+    line-height: 1.6;
+}
+
+/* ==================== 移动端只读模式 ==================== */
+.mobile-readonly-mode .btn-warning,
+.mobile-readonly-mode .btn-danger,
+.mobile-readonly-mode .action-icon,
+.mobile-readonly-mode .card-actions {
+    display: none !important;
+}
+
+.mobile-readonly-mode input:disabled,
+.mobile-readonly-mode textarea:disabled {
+    background-color: #f5f5f5 !important;
+    cursor: not-allowed !important;
+    opacity: 0.7;
+}
+
+/* ==================== 简化调试信息 ==================== */
+#debug-info {
+    font-family: monospace;
+    background: rgba(0, 0, 0, 0.8) !important;
+    color: #4CAF50 !important;
+    border: 1px solid #4CAF50;
+}
+
+/* ==================== 移动端优化 ==================== */
+.mobile-mode .right-panel {
+    display: none;
+}
+
+.mobile-mode .sidebar {
+    display: none;
+}
+
+.mobile-mode .main-container {
+    flex-direction: column;
+}
+
+.mobile-mode .content-area {
+    width: 100%;
+    padding: 15px;
+    padding-top: 80px;
+    padding-bottom: 80px;
+}
+
+/* ==================== 修复模态框层级 ==================== */
+.modal-overlay {
+    z-index: 10000 !important;
+}
+
+.modal {
+    z-index: 10001 !important;
+}
+
+/* ==================== 预加载动画修复 ==================== */
+#preloader {
+    transition: opacity 0.3s ease;
+}
+
+#preloader.fade-out {
+    opacity: 0;
+    pointer-events: none;
+}
