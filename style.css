@@ -910,7 +910,7 @@ input[type="text"] {
     max-height: 90vh;
     overflow-y: auto;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
-    z-index: 10000; 
+    z-index: 10000; /* 添加这一行 */
 }
 
 .modal h3 {
