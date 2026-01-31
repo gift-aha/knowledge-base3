@@ -1190,6 +1190,52 @@ const App = {
         // 这里可以添加逻辑来更新模型的relatedModels
         // 但由于UI中没有相关输入框，暂时只更新描述
     },
+
+        // 从思考记录提取关联模型
+    extractRelatedModels: function(thought) {
+        const relatedModels = [];
+        
+        if (thought.sections && thought.sections["模型延伸与整合"]) {
+            const content = thought.sections["模型延伸与整合"];
+            // 匹配模型ID格式，如 M-74, M-73, M-77, M-76
+            const modelIdRegex = /M-\d+/g;
+            const matches = content.match(modelIdRegex);
+            if (matches) {
+                relatedModels.push(...matches);
+            }
+        }
+        
+        // 去重
+        return [...new Set(relatedModels)];
+    },
+    
+    // 从思考记录提取模型描述
+    extractModelDescription: function(thought) {
+        if (!thought.sections) return null;
+        
+        // 从"模型延伸与整合"或"核心结论"中提取
+        let content = '';
+        
+        if (thought.sections["模型延伸与整合"]) {
+            content = thought.sections["模型延伸与整合"];
+            // 查找"新建核心模型"标题下的内容
+            const newModelMatch = content.match(/新建核心模型[^：:]*[：:]\s*(.+?)(?:\n\n|\n*$)/s);
+            if (newModelMatch && newModelMatch[1]) {
+                return newModelMatch[1].trim();
+            }
+        }
+        
+        // 如果没找到，使用核心结论的前200个字符
+        if (thought.sections["核心结论"]) {
+            content = thought.sections["核心结论"];
+            if (content.length > 200) {
+                return content.substring(0, 200) + '...';
+            }
+            return content;
+        }
+        
+        return null;
+    },
     
     filterByTag: function(tag) {
         // 切换到思考列表视图并筛选
